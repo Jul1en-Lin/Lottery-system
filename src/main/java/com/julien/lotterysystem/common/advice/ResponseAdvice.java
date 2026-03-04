@@ -2,16 +2,23 @@ package com.julien.lotterysystem.common.advice;
 
 import com.julien.lotterysystem.entity.response.Result;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import tools.jackson.databind.ObjectMapper;
 
+@ControllerAdvice
 public class ResponseAdvice implements ResponseBodyAdvice {
 
-    private ObjectMapper objectMapper;
+
+    private final ObjectMapper objectMapper;
+    public ResponseAdvice(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     // 默认放行
     @Override

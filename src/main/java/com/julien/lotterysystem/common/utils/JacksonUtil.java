@@ -10,7 +10,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.Callable;
 
-
+// TODO：尝试Hutool的Json工具
 public class JacksonUtil {
 
     private static final ObjectMapper OBJECT_MAPPER;
