@@ -1,6 +1,6 @@
 package com.julien.lotterysystem.entity.response;
 
-import com.julien.lotterysystem.common.errorcode.ErrorCode;
+import com.julien.lotterysystem.entity.errorcode.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +19,13 @@ public class Result<T> {
         result.setCode(200);
         result.setMessage("success");
         result.setData(data);
+        return result;
+    }
+
+    public static <T> Result<T> success() {
+        Result<T> result = new Result<>();
+        result.setCode(200);
+        result.setMessage("success");
         return result;
     }
 

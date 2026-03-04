@@ -1,0 +1,17 @@
+spring:
+    application:
+        name: lottery-system
+    datasource:
+      url: jdbc:mysql://127.0.0.1:3306/lottery_system?characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: dd.159178280
+      driver-class-name: com.mysql.cj.jdbc.Driver
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true #配置驼峰自动转换
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #打印sql语句
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    name: lottery-system.log

@@ -1,4 +1,4 @@
-package com.julien.lotterysystem.common.errorcode;
+package com.julien.lotterysystem.entity.errorcode;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

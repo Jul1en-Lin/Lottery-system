@@ -1,6 +1,6 @@
 package com.julien.lotterysystem.common.exception;
 
-import com.julien.lotterysystem.common.errorcode.ErrorCode;
+import com.julien.lotterysystem.entity.errorcode.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

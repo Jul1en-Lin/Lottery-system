@@ -1,4 +1,6 @@
-package com.julien.lotterysystem.common.errorcode;
+package com.julien.lotterysystem.common.constants;
+
+import com.julien.lotterysystem.entity.errorcode.ErrorCode;
 
 public interface GlobalErrorConstants {
     ErrorCode SUCCESS = new ErrorCode(200,"成功");
