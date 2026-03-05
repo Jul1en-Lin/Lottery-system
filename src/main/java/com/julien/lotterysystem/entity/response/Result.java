@@ -44,4 +44,5 @@ public class Result<T> {
         result.setMessage(errMsg);
         return result;
     }
+
 }

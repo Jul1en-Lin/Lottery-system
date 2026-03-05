@@ -4,7 +4,9 @@ import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.AES;
 import cn.hutool.crypto.symmetric.SymmetricAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AESUtil {
 
     /**
@@ -18,12 +20,12 @@ public class AESUtil {
         AES aes = SecureUtil.aes(key);
         // 加密为16进制字符串表示
         String encryptHex = aes.encryptHex(phoneNumber);
-        System.out.println("加密后的16进制字符串：" + encryptHex);
+        log.info("加密后的16进制字符串：{}", encryptHex);
     }
 
     public static void decryptPhoneNumber(String encryptHex,AES aes) {
         // 解密为字符串
         String decryptStr = aes.decryptStr(encryptHex, CharsetUtil.CHARSET_UTF_8);
-        System.out.println("解密后的字符串：" + decryptStr);
+        log.info("解密后的字符串：{}", decryptStr);
     }
 }
