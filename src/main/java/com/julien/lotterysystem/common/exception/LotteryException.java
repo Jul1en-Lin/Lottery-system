@@ -15,11 +15,13 @@ public class LotteryException extends RuntimeException{
     private String errMsg;
 
     public LotteryException(ErrorCode errorCode) {
+        super(errorCode.getErrMeg());
         this.code = errorCode.getCode();
         this.errMsg = errorCode.getErrMeg();
     }
 
     public LotteryException(Integer code, String errMsg) {
+        super(errMsg);
         this.code = code;
         this.errMsg = errMsg;
     }

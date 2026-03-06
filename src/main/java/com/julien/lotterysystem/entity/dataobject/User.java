@@ -1,14 +1,19 @@
 package com.julien.lotterysystem.entity.dataobject;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.julien.lotterysystem.mapper.handler.EncryptTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-@TableName("user")
+@TableName(value = "user", autoResultMap = true)
 public class User {
     /** 主键 */
+    @TableId(value = "id",type = IdType.AUTO)
     private Long id;
     /** 创建时间 */
     private LocalDateTime gmtCreate;
@@ -19,7 +24,8 @@ public class User {
     /** 邮箱 */
     private String email;
     /** 手机号 */
-    private String phoneNumber;
+    @TableField(typeHandler = EncryptTypeHandler.class)
+    private Encrypt phoneNumber;
     /** 登录密码（可为空） */
     private String password;
     /** 用户身份 */

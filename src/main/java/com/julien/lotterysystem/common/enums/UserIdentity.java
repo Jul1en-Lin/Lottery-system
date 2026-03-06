@@ -5,8 +5,8 @@ import lombok.Getter;
 
 @Getter
 public enum UserIdentity {
-    ADMIN("管理员"),
-    NORMAL("普通用户");
+    ADMIN("ADMIN"),
+    NORMAL("NORMAL");
     private final String identity;
 
     UserIdentity(String identity) {
