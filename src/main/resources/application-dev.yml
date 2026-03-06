@@ -10,6 +10,7 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true #配置驼峰自动转换
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #打印sql语句
+  type-handlers-package: com.julien.lotterysystem.mapper.handler # 配置类型处理器包路径（手机号自动加密解密）
 
 logging:
   config: classpath:logback-spring.xml

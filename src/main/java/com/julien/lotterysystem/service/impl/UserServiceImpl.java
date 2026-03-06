@@ -10,6 +10,7 @@ import com.julien.lotterysystem.entity.request.UserRequest;
 import com.julien.lotterysystem.entity.response.UserResponse;
 import com.julien.lotterysystem.mapper.UserMapper;
 import com.julien.lotterysystem.service.UserService;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -48,21 +49,39 @@ public class UserServiceImpl implements UserService {
         if (!RegexUtil.checkMobile(request.getPhoneNumber())) {
             throw new IllegalArgumentException("手机号格式错误");
         }
-        // 校验邮箱 / 电话是否被注册过
-        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, request.getEmail())
-                .or()
-                .eq(User::getPhoneNumber, request.getPhoneNumber()));
-        if (count > 0) {
-            throw new IllegalArgumentException("该邮箱或手机号已被注册");
-        }
 
         // 检验密码（管理员不可为空）
         if (request.getIdentity().equalsIgnoreCase(UserIdentity.ADMIN.getIdentity())
                 && !StringUtils.hasText(request.getPassword())) {
             throw new IllegalArgumentException("管理员密码不能为空");
         }
+
+        checkEmailUsed(request);
+        checkPhoneUsed(request);
+
+
+
     }
 
-
+    /**
+     * 校验手机号是否被注册过
+     */
+    private void checkPhoneUsed(UserRequest request) {
+        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getPhoneNumber, request.getPhoneNumber()));
+        if (count > 0) {
+            throw new IllegalArgumentException("该手机号已被注册");
+        }
+    }
+    /**
+     * 校验邮箱是否被注册过
+     */
+    private void checkEmailUsed(UserRequest request) {
+        // 校验邮箱是否被注册过
+        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, request.getEmail()));
+        if (count > 0) {
+            throw new IllegalArgumentException("该邮箱或手机号已被注册");
+        }
+    }
 }
