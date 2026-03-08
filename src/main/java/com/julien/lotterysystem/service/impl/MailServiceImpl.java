@@ -1,6 +1,7 @@
 package com.julien.lotterysystem.service.impl;
 
 import com.julien.lotterysystem.common.exception.LotteryException;
+import com.julien.lotterysystem.common.utils.RegexUtil;
 import com.julien.lotterysystem.service.MailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,14 @@ public class MailServiceImpl implements MailService {
     @Override
     public void sendVerificationCode(String to, String code) {
         SimpleMailMessage message = new SimpleMailMessage();
+        // 校验邮箱格式
+        if (!RegexUtil.checkMail(to)) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "邮箱格式错误");
+        }
         message.setFrom(from);
         message.setTo(to);
         message.setSubject("【抽奖系统】邮箱登录验证码");
-        message.setText("您的登录验证码为：" + code + "，有效期1分钟，请勿泄露给他人。");
+        message.setText("您的登录验证码为：" + code + "，有效期5分钟，请勿泄露给他人。");
         try {
             mailSender.send(message);
             log.info("验证码邮件发送成功，收件人：{}", to);

@@ -32,7 +32,9 @@ public class UserServiceImpl implements UserService {
     /** Redis中邮箱验证码的key前缀 */
     private static final String EMAIL_CODE_PREFIX = "email:code:";
     /** 邮箱验证码过期时间（分钟） */
-    private static final long EMAIL_CODE_EXPIRE_MINUTES = 1;
+    private static final long EMAIL_CODE_EXPIRE_MINUTES = 5;
+    /** 防刷间隔（秒），过期时间内剩余TTL大于此值时拒绝重发 */
+    private static final long EMAIL_CODE_RESEND_INTERVAL_SECONDS = 240;
 
     @Autowired
     private UserMapper userMapper;
@@ -49,17 +51,28 @@ public class UserServiceImpl implements UserService {
         if (!checkRegisterInfo(request)) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "注册信息校验失败");
         }
-
         // 存储数据
         return insertUser(request);
     }
-
-
 
     /**
      * 注册参数校验
      */
     private Boolean checkRegisterInfo(UserRequest request) {
+        // 校验格式
+        checkUserInfoFormat(request);
+        // 检验密码（如管理员则不可为空）
+        if (request.getIdentity().equalsIgnoreCase(UserIdentity.ADMIN.getIdentity())
+                && !StringUtils.hasText(request.getPassword())) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(),"管理员密码不能为空");
+        }
+        return checkEmailUsed(request) && checkPhoneUsed(request);
+    }
+
+    /**
+     * 检验参数格式是否正确
+     */
+    private Boolean checkUserInfoFormat(UserRequest request) {
         // 校验邮箱格式
         if (!RegexUtil.checkMail(request.getEmail())) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "邮箱格式错误");
@@ -68,16 +81,8 @@ public class UserServiceImpl implements UserService {
         if (!RegexUtil.checkMobile(request.getPhoneNumber())) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(),"手机号格式错误");
         }
-
-        // 检验密码（如管理员则不可为空）
-        if (request.getIdentity().equalsIgnoreCase(UserIdentity.ADMIN.getIdentity())
-                && !StringUtils.hasText(request.getPassword())) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(),"管理员密码不能为空");
-        }
-
-        return checkEmailUsed(request) && checkPhoneUsed(request);
+        return true;
     }
-
     /**
      * 校验手机号是否被注册过
      */
@@ -93,7 +98,6 @@ public class UserServiceImpl implements UserService {
      * 校验邮箱是否被注册过
      */
     private Boolean checkEmailUsed(UserRequest request) {
-        // 校验邮箱是否被注册过
         Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
                 .eq(User::getEmail, request.getEmail()));
         if (count > 0) {
@@ -102,12 +106,18 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
+    /**
+     * 一键插入用户
+     * @param request：用户请求对象
+     */
     private UserResponse insertUser(UserRequest request) {
         User user = new User();
         user.setUserName(request.getUserName());
         user.setEmail(request.getEmail());
         user.setPhoneNumber(new Encrypt(request.getPhoneNumber()));
-        user.setPassword(Md5Util.encryptPassword(request.getPassword()));
+        // 非管理员可为空
+        user.setPassword(StringUtils.hasText(request.getPassword())
+                ? Md5Util.encryptPassword(request.getPassword()) : null);
         user.setIdentity(request.getIdentity());
         try {
             userMapper.insert(user);
@@ -120,6 +130,10 @@ public class UserServiceImpl implements UserService {
         userResponse.setId(user.getId());
         return userResponse;
     }
+
+    /**
+     * 发送邮箱验证码
+     */
     @Override
     public void sendEmailCode(String email) {
         // 校验邮箱格式
@@ -130,21 +144,23 @@ public class UserServiceImpl implements UserService {
         // 防止频繁发送：检查Redis中是否已存在未过期的验证码
         String redisKey = EMAIL_CODE_PREFIX + email;
         Long ttl = stringRedisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
-        if (ttl != null && ttl > (EMAIL_CODE_EXPIRE_MINUTES - 1) * 60) {
+        if (ttl != null && ttl > EMAIL_CODE_RESEND_INTERVAL_SECONDS) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码已发送，请稍后再试");
         }
 
         // 生成6位数字验证码
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
-
-        // 存入Redis，设置过期时间
-        stringRedisTemplate.opsForValue().set(redisKey, code, EMAIL_CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
-
+        log.info("生成的邮箱验证码为：{}", code);
         // 发送邮件
         mailService.sendVerificationCode(email, code);
+        // 存入Redis，设置过期时间
+        stringRedisTemplate.opsForValue().set(redisKey, code, EMAIL_CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
         log.info("邮箱验证码已发送，邮箱：{}", email);
     }
 
+    /**
+     * 邮箱验证码登录
+     */
     @Override
     public EmailLoginResponse emailLogin(EmailLoginRequest request) {
         String email = request.getEmail();
@@ -183,15 +199,21 @@ public class UserServiceImpl implements UserService {
         return new EmailLoginResponse(true, user.getId());
     }
 
+    /**
+     * 邮箱验证码注册
+     */
     @Override
     public UserResponse emailRegister(EmailRegisterRequest request) {
         String email = request.getEmail();
         String code = request.getCode();
+        log.info("邮箱验证码注册请求，email：{}, code：{}", email, code);
 
         // 校验邮箱格式
         if (!RegexUtil.checkMail(email)) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "邮箱格式错误");
         }
+
+        // ------------ Redis ----------------
 
         // 从Redis获取验证码
         String redisKey = EMAIL_CODE_PREFIX + email;
@@ -200,57 +222,17 @@ public class UserServiceImpl implements UserService {
         if (!StringUtils.hasText(cachedCode)) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码已过期，请重新获取");
         }
-
         if (!cachedCode.equals(code)) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码错误");
         }
-
         // 验证码正确，删除Redis中的验证码
         stringRedisTemplate.delete(redisKey);
 
-        // 校验邮箱是否已被注册
-        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, email));
-        if (count > 0) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "该邮箱已被注册");
-        }
-
-        // 校验手机号格式
-        if (!RegexUtil.checkMobile(request.getPhoneNumber())) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "手机号格式错误");
-        }
-
-        // 校验手机号是否已被注册
-        Long phoneCount = userMapper.selectCount(new LambdaQueryWrapper<User>()
-                .eq(User::getPhoneNumber, new Encrypt(request.getPhoneNumber())));
-        if (phoneCount > 0) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "该手机号已被注册");
-        }
-
-        // 检验密码（管理员不可为空）
-        if (request.getIdentity().equalsIgnoreCase(UserIdentity.ADMIN.getIdentity())
-                && !StringUtils.hasText(request.getPassword())) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "管理员密码不能为空");
-        }
-
-        // 存储用户
-        User user = new User();
-        user.setUserName(request.getUserName());
-        user.setEmail(email);
-        user.setPhoneNumber(new Encrypt(request.getPhoneNumber()));
-        user.setPassword(StringUtils.hasText(request.getPassword())
-                ? Md5Util.encryptPassword(request.getPassword()) : null);
-        user.setIdentity(request.getIdentity());
-        try {
-            userMapper.insert(user);
-        } catch (Exception e) {
-            log.error("邮箱注册插入用户失败", e);
-            throw new RuntimeException(e);
-        }
-
-        log.info("用户邮箱注册成功，userId：{}, email：{}", user.getId(), email);
-        UserResponse userResponse = new UserResponse();
-        userResponse.setId(user.getId());
-        return userResponse;
+        // ------------------------------------
+        
+        // 校验注册信息
+        checkRegisterInfo(request); // 多了一层邮箱校验
+        // 插入用户数据
+        return insertUser(request);
     }
 }

@@ -10,12 +10,14 @@ spring:
     host: smtp.qq.com
     port: 465
     username: 1577045857@qq.com
-    password: LMvQZ7dATgPyyaAG # 这里填入获取的 SMTP 授权码
+    password: lvcgvdnawophigec # 授权码
+    protocol: smtp
     properties:
-      smtp:
-        auth: true
-        ssl:
-          enable: true
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
   data:
     redis:
       host: localhost
