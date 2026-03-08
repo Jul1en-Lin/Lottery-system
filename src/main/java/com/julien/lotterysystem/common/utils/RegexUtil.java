@@ -2,9 +2,18 @@ package com.julien.lotterysystem.common.utils;
 
 import org.springframework.util.StringUtils;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class RegexUtil {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Za-z0-9](?:[A-Za-z0-9._%+\\-]{0,62}[A-Za-z0-9])?@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,10}$"
+    );
+
+    private static final Pattern COMMON_PROVIDER_DOMAIN_PATTERN = Pattern.compile(
+        "^(?:[A-Za-z0-9-]+\\.)?(qq|foxmail|gmail|163|126|yeah|outlook|hotmail|live|sina|sohu)\\..+$"
+    );
 
     /**
      * 校验邮箱：
@@ -14,18 +23,28 @@ public class RegexUtil {
         if (!StringUtils.hasText(content)) {
             return false;
         }
-        /**
-         * ^ 表示匹配字符串的开始。
-         * [a-z0-9]+ 表示匹配一个或多个小写字母或数字。
-         * ([._\\-]*[a-z0-9])* 表示匹配零次或多次下述模式：一个点、下划线、反斜杠或短横线，后面跟着一个或多个小写字母或数字。这部分是可选的，并且可以重复出现。
-         * @ 字符字面量，表示电子邮件地址中必须包含的"@"符号。
-        * ([a-z0-9]+[-a-z0-9]*[a-z0-9]+\\.) 表示匹配一个或多个小写字母或数字，后面可以跟着零个或多个短横线或小写字母和数字，然后是一个小写字母或数字，最后是一个点。这是匹配域名的一部分。
-         * {1,63} 表示前面的模式重复1到63次，这是对顶级域名长度的限制。
-         * [a-z0-9]+ 表示匹配一个或多个小写字母或数字，这是顶级域名的开始部分。
-         * $ 表示匹配字符串的结束。
-         */
-        String regex = "^[a-z0-9]+([._\\-]*[a-z0-9])*@([a-z0-9]+[-a-z0-9]*[a-z0-9]+\\.){1,63}[a-z0-9]+$";
-        return Pattern.matches(regex, content);
+        String email = content.trim();
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            return false;
+        }
+
+        String domain = email.substring(email.indexOf('@') + 1).toLowerCase(Locale.ROOT);
+        if (COMMON_PROVIDER_DOMAIN_PATTERN.matcher(domain).matches()) {
+            return isKnownProviderDomain(domain);
+        }
+        return true;
+    }
+
+    private static boolean isKnownProviderDomain(String domain) {
+        return switch (domain) {
+            case "qq.com", "vip.qq.com", "foxmail.com",
+                 "gmail.com",
+                 "163.com", "126.com", "yeah.net",
+                 "outlook.com", "hotmail.com", "live.com",
+                 "sina.com", "sina.cn",
+                 "sohu.com" -> true;
+            default -> false;
+        };
     }
 
     /**

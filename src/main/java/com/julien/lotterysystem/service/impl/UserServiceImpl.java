@@ -154,6 +154,7 @@ public class UserServiceImpl implements UserService {
         // 发送邮件
         mailService.sendVerificationCode(email, code);
         // 存入Redis，设置过期时间
+        // 先发送邮件，避免Redis存入无效验证码
         stringRedisTemplate.opsForValue().set(redisKey, code, EMAIL_CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
         log.info("邮箱验证码已发送，邮箱：{}", email);
     }
