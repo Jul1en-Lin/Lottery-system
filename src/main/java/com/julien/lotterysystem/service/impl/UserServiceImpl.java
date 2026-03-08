@@ -229,7 +229,7 @@ public class UserServiceImpl implements UserService {
         stringRedisTemplate.delete(redisKey);
 
         // ------------------------------------
-        
+
         // 校验注册信息
         checkRegisterInfo(request); // 多了一层邮箱校验
         // 插入用户数据
