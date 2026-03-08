@@ -26,7 +26,7 @@ public class MailServiceImpl implements MailService {
         message.setFrom(from);
         message.setTo(to);
         message.setSubject("【抽奖系统】邮箱登录验证码");
-        message.setText("您的登录验证码为：" + code + "，有效期1分钟，请勿泄露给他人。");
+        message.setText("您的登录验证码为：" + code + "，有效期5分钟，请勿泄露给他人。");
         try {
             mailSender.send(message);
             log.info("验证码邮件发送成功，收件人：{}", to);
