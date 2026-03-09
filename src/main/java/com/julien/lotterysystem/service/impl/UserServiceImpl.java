@@ -183,14 +183,16 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserLoginResponse adminEmailLogin(@Valid EmailLoginRequest request) {
         String email = request.getEmail();
+        // 校验邮箱格式
         validateEmail(email);
+        // 校验管理员邮箱是否存在
         User user = getAdminByEmail(email);
         // 校验邮箱验证码
         consumeEmailCode(email, request.getCode());
         log.info("管理员邮箱验证码登录成功，userId：{}, email：{}", user.getId(), email);
         // 生成jwt-token
         String token = generateJwtToken(user.getId(), user.getIdentity());
-        return new UserLoginResponse(token,request.getEmail());
+        return new UserLoginResponse(token,user.getId());
     }
 
     /**
@@ -199,7 +201,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserLoginResponse adminPasswordLogin(@Valid PasswordLoginRequest request) {
         String email = request.getEmail();
+        // 校验邮箱格式
         validateEmail(email);
+        // 校验管理员邮箱是否存在
         User user = getAdminByEmail(email);
         if (!StringUtils.hasText(user.getPassword())) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "该管理员未设置密码，请使用邮箱验证登录");
@@ -210,7 +214,7 @@ public class UserServiceImpl implements UserService {
         log.info("管理员密码登录成功，userId：{}, email：{}", user.getId(), email);
         // 生成jwt-token
         String token = generateJwtToken(user.getId(), user.getIdentity());
-        return new UserLoginResponse(token,request.getEmail());
+        return new UserLoginResponse(token,user.getId());
     }
 
     /**

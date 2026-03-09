@@ -2,7 +2,6 @@ package com.julien.lotterysystem.mapper.handler;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.AES;
-import com.julien.lotterysystem.common.constants.GlobalErrorConstants;
 import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.entity.dataobject.Encrypt;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +10,7 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.CallableStatement;
@@ -23,7 +23,7 @@ import java.sql.SQLException;
 @MappedJdbcTypes(JdbcType.VARCHAR) // 映射的 JDBC 类型
 
 /**
- * MyBatis 字段处理器：写库时自动对手机号做对称加密，读库时自动解密还原。
+ * MyBatis字段处理器：写库时自动对手机号做对称加密，读库时自动解密还原。
  * 统一把加解密收敛在持久层，便于在注册校验（如重复手机号校验）中复用，避免业务层手动处理明文。
  */
 public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
@@ -50,8 +50,7 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
         }
         log.info("待加密的明文为：{}", parameter.getValue());
         // 加密后的密文设置到 SQL 参数中
-        AES aes = SecureUtil.aes(AES_KEY);
-        String result = aes.encryptHex(parameter.getValue());
+        String result = encryptValue(parameter.getValue());
         ps.setString(i, result);
     }
 
@@ -99,10 +98,26 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
      * 公共解密方法
      */
     private Encrypt decrypt(String param) {
-        if (param == null) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "加密字段不能为空");
+        if (!StringUtils.hasText(param)) {
+            return null;
         }
+        try {
+            // 数据库存的是 encryptHex 生成的十六进制密文，这里必须按十六进制字符串解密。
+            return new Encrypt(decryptValue(param));
+        } catch (Exception exception) {
+            log.error("解密手机号字段失败，cipherText:{}", param, exception);
+            throw new LotteryException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "手机号字段解密失败");
+        }
+    }
+
+    static String encryptValue(String plainText) {
         AES aes = SecureUtil.aes(AES_KEY);
-        return new Encrypt(aes.decryptStr(param.getBytes(StandardCharsets.UTF_8)));
+        return aes.encryptHex(plainText);
+    }
+
+    static String decryptValue(String cipherText) {
+        AES aes = SecureUtil.aes(AES_KEY);
+        // 这里要和 encryptHex 配对，不能把十六进制字符串直接当作普通 UTF-8 字节数组去解密。
+        return aes.decryptStr(cipherText, StandardCharsets.UTF_8);
     }
 }

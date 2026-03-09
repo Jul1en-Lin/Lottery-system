@@ -331,7 +331,7 @@ function initSignupPage() {
             return;
         }
         if (!consentCheckbox.checked) {
-            setAlert(statusEl, "error", "请先同意隐私政策和服务条款。");
+            setAlert(statusEl, "error", "请先同意相关协议。");
             consentCheckbox.focus();
             return;
         }

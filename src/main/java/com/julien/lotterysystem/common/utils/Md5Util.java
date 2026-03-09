@@ -38,6 +38,8 @@ public class Md5Util {
         String finalPassword = salt + inputPassword;
         // 加密后校验
         String verifyPassword = DigestUtils.md5DigestAsHex(finalPassword.getBytes(StandardCharsets.UTF_8));
+//        System.out.println("salt + verifyPassword: " + (salt + verifyPassword));
+//        System.out.println("sqlPassword: " + sqlPassword);
         return sqlPassword.equals(salt + verifyPassword);
     }
 }

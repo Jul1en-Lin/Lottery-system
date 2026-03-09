@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 public class UserLoginResponse {
     // Jwt令牌
     private String token;
-    // 用户邮箱
-    private String email;
+    // 用户id
+    private Long id;
 }
