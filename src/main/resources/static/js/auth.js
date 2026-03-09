@@ -25,14 +25,21 @@ function initSceneMotion() {
     }
 
     document.addEventListener("mousemove", (event) => {
-        const rect = scene.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const offsetX = clamp((event.clientX - centerX) / 45, -4, 4);
-        const offsetY = clamp((event.clientY - centerY) / 55, -3, 3);
         document.querySelectorAll(".pupil").forEach((pupil) => {
-            pupil.style.setProperty("--look-x", `${offsetX}px`);
-            pupil.style.setProperty("--look-y", `${offsetY}px`);
+            const rect = pupil.parentElement.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dx = event.clientX - centerX;
+            const dy = event.clientY - centerY;
+            const limit = pupil.classList.contains("dot") ? 5 : 4;
+            const angle = Math.atan2(dy, dx);
+            const distance = Math.min(Math.hypot(dx, dy) / 18, limit);
+            const offsetX = Math.cos(angle) * distance;
+            const offsetY = Math.sin(angle) * distance;
+            pupil.style.setProperty("--look-x", `${offsetX.toFixed(2)}px`);
+            pupil.style.setProperty("--look-y", `${offsetY.toFixed(2)}px`);
+            pupil.style.setProperty("--pupil-x", `${offsetX.toFixed(2)}px`);
+            pupil.style.setProperty("--pupil-y", `${offsetY.toFixed(2)}px`);
         });
     });
 }
@@ -59,67 +66,118 @@ function initLoginPage() {
     const passwordInput = document.getElementById("loginPassword");
     const codeInput = document.getElementById("loginCode");
     const sendCodeButton = document.getElementById("loginSendCode");
-    const secondaryCodeButton = document.getElementById("secondaryCodeButton");
-    const resendCodeLink = document.getElementById("resendCodeLink");
     const togglePasswordButton = document.getElementById("toggleLoginPassword");
+    const eyeOpen = document.getElementById("loginEyeOpen");
+    const eyeClosed = document.getElementById("loginEyeClosed");
     const form = document.getElementById("loginForm");
     const statusEl = document.getElementById("loginStatus");
     const submitButton = document.getElementById("loginSubmit");
     const scene = document.getElementById("characterScene");
+    const loginModeStack = document.getElementById("loginModeStack");
+    const loginMethodSwitch = document.getElementById("loginMethodSwitch");
     const modeButtons = Array.from(document.querySelectorAll("#loginMethodSwitch .method-chip"));
     const modePanels = Array.from(document.querySelectorAll("[data-mode-panel]"));
-    const emailOnlyElements = Array.from(document.querySelectorAll(".login-email-only"));
+    const blinkableEyes = Array.from(document.querySelectorAll("#characterScene .login-eye"));
     let currentMode = "password";
+    let typingTimer = null;
+    let blinkTimer = null;
 
-    bindTypingState([emailInput], scene, "scene-typing");
-    bindTypingState([codeInput], scene, "scene-typing");
-    bindTypingState([passwordInput], scene, "scene-peeking");
+    const triggerTypingAnimation = () => {
+        if (!scene) {
+            return;
+        }
+        scene.classList.add("scene-typing");
+        window.clearTimeout(typingTimer);
+        typingTimer = window.setTimeout(() => {
+            scene.classList.remove("scene-typing");
+        }, 800);
+    };
+
+    const randomBlink = () => {
+        if (!blinkableEyes.length) {
+            return;
+        }
+
+        const delay = 3000 + Math.random() * 4000;
+        blinkTimer = window.setTimeout(() => {
+            blinkableEyes.forEach((eye) => eye.classList.add("blink"));
+            window.setTimeout(() => {
+                blinkableEyes.forEach((eye) => eye.classList.remove("blink"));
+                randomBlink();
+            }, 150);
+        }, delay);
+    };
+
+    [emailInput, codeInput].forEach((input) => {
+        input?.addEventListener("focus", triggerTypingAnimation);
+        input?.addEventListener("input", triggerTypingAnimation);
+    });
+
+    const triggerPeekAnimation = () => triggerScenePeek(scene);
 
     togglePasswordButton.addEventListener("click", () => {
         const isPassword = passwordInput.type === "password";
         passwordInput.type = isPassword ? "text" : "password";
-        togglePasswordButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
-        scene?.classList.toggle("scene-peeking", isPassword);
+        togglePasswordButton.setAttribute("aria-label", isPassword ? "隐藏密码" : "显示密码");
+        if (eyeOpen && eyeClosed) {
+            eyeOpen.style.display = isPassword ? "none" : "block";
+            eyeClosed.style.display = isPassword ? "block" : "none";
+        }
+        triggerPeekAnimation();
     });
+
+    passwordInput.addEventListener("focus", triggerPeekAnimation);
+    passwordInput.addEventListener("input", triggerPeekAnimation);
+
+    const syncLoginModeHeight = () => {
+        if (!loginModeStack || !modePanels.length) {
+            return;
+        }
+        const maxHeight = Math.max(...modePanels.map((panel) => panel.scrollHeight));
+        loginModeStack.style.setProperty("--login-mode-height", `${maxHeight}px`);
+    };
 
     const updateMode = (nextMode) => {
         currentMode = nextMode;
+        loginMethodSwitch?.setAttribute("data-active-mode", nextMode);
         modeButtons.forEach((button) => {
             const isActive = button.dataset.mode === nextMode;
             button.classList.toggle("active", isActive);
             button.setAttribute("aria-selected", String(isActive));
         });
         modePanels.forEach((panel) => {
-            panel.classList.toggle("is-hidden", panel.dataset.modePanel !== nextMode);
+            const isActive = panel.dataset.modePanel === nextMode;
+            panel.classList.toggle("is-active", isActive);
+            panel.classList.toggle("is-inactive", !isActive);
         });
-        emailOnlyElements.forEach((element) => {
-            element.classList.toggle("is-hidden", nextMode !== "email");
-        });
-        setButtonLabel(submitButton, nextMode === "password" ? "Log in with password" : "Log in with email");
+        setButtonLabel(submitButton, nextMode === "password" ? "密码登录" : "验证码登录");
         clearAlert(statusEl);
     };
 
     modeButtons.forEach((button) => {
         button.addEventListener("click", () => updateMode(button.dataset.mode));
     });
+    syncLoginModeHeight();
     updateMode(currentMode);
 
     const sendCode = () => requestEmailCode(
         emailInput,
         sendCodeButton,
         statusEl,
-        [secondaryCodeButton, resendCodeLink],
+        [],
         "/user/admin/sendEmailCode"
     );
     sendCodeButton.addEventListener("click", sendCode);
-    secondaryCodeButton.addEventListener("click", sendCode);
-    resendCodeLink.addEventListener("click", sendCode);
+
+    window.addEventListener("resize", syncLoginModeHeight);
 
     const params = new URLSearchParams(window.location.search);
     const emailPrefill = params.get("email");
     if (emailPrefill) {
         emailInput.value = emailPrefill;
     }
+
+    randomBlink();
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -184,6 +242,7 @@ function initLoginPage() {
 
 function initSignupPage() {
     const form = document.getElementById("signupForm");
+    const identityInput = document.getElementById("signupIdentity");
     const emailInput = document.getElementById("signupEmail");
     const userNameInput = document.getElementById("signupUserName");
     const phoneInput = document.getElementById("signupPhoneNumber");
@@ -197,7 +256,7 @@ function initSignupPage() {
     const scene = document.getElementById("characterScene");
 
     bindTypingState([userNameInput, emailInput], scene, "scene-typing");
-    bindTypingState([passwordInput], scene, "scene-peeking");
+    const triggerPeekAnimation = () => triggerScenePeek(scene);
 
     const params = new URLSearchParams(window.location.search);
     const emailPrefill = params.get("email");
@@ -208,11 +267,20 @@ function initSignupPage() {
     togglePasswordButton.addEventListener("click", () => {
         const isPassword = passwordInput.type === "password";
         passwordInput.type = isPassword ? "text" : "password";
-        togglePasswordButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
-        scene?.classList.toggle("scene-peeking", isPassword);
+        togglePasswordButton.setAttribute("aria-label", isPassword ? "隐藏密码" : "显示密码");
+        triggerPeekAnimation();
     });
 
-    sendCodeButton.addEventListener("click", () => requestEmailCode(emailInput, sendCodeButton, statusEl));
+    passwordInput.addEventListener("focus", triggerPeekAnimation);
+    passwordInput.addEventListener("input", triggerPeekAnimation);
+
+    sendCodeButton.addEventListener("click", () => requestEmailCode(
+        emailInput,
+        sendCodeButton,
+        statusEl,
+        [],
+        "/user/admin/sendEmailCode"
+    ));
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -224,15 +292,16 @@ function initSignupPage() {
             phoneNumber: phoneInput.value.trim(),
             password: passwordInput.value.trim() || null,
             code: codeInput.value.trim(),
-            identity: form.querySelector("input[name='identity']:checked")?.value
+            identity: identityInput?.value || "ADMIN"
         };
 
-        if (!payload.identity) {
-            setAlert(statusEl, "error", "请选择身份类型。");
+        if (payload.identity !== "ADMIN") {
+            setAlert(statusEl, "error", "注册页仅允许创建管理员账号。");
             return;
         }
+
         if (!payload.userName) {
-            setAlert(statusEl, "error", "请输入用户名。");
+            setAlert(statusEl, "error", "请输入管理员名称。");
             userNameInput.focus();
             return;
         }
@@ -242,11 +311,16 @@ function initSignupPage() {
             return;
         }
         if (!PHONE_PATTERN.test(payload.phoneNumber)) {
-            setAlert(statusEl, "error", "请输入正确的 11 位手机号。");
+            setAlert(statusEl, "error", "请输入正确的 11 位管理员手机号。");
             phoneInput.focus();
             return;
         }
-        if (payload.password && !/^[0-9A-Za-z]{6,20}$/.test(payload.password)) {
+        if (!payload.password) {
+            setAlert(statusEl, "error", "请输入管理员密码。");
+            passwordInput.focus();
+            return;
+        }
+        if (!/^[0-9A-Za-z]{6,20}$/.test(payload.password)) {
             setAlert(statusEl, "error", "密码需为 6 到 20 位字母或数字。");
             passwordInput.focus();
             return;
@@ -274,7 +348,7 @@ function initSignupPage() {
             });
             sessionStorage.setItem("auth-flash", JSON.stringify({
                 type: "success",
-                message: "注册成功，请使用刚刚收到的邮箱验证码登录。"
+                message: "管理员注册成功，请使用密码或刚刚收到的邮箱验证码登录。"
             }));
             window.location.href = `/login?email=${encodeURIComponent(payload.email)}`;
         } catch (error) {
@@ -283,6 +357,19 @@ function initSignupPage() {
             setButtonState(submitButton, false);
         }
     });
+
+}
+
+function triggerScenePeek(scene, duration = 720) {
+    if (!scene) {
+        return;
+    }
+
+    window.clearTimeout(scene.peekTimerId);
+    scene.classList.add("scene-peeking");
+    scene.peekTimerId = window.setTimeout(() => {
+        scene.classList.remove("scene-peeking");
+    }, duration);
 }
 
 function initForgotPasswordPage() {
@@ -318,7 +405,7 @@ function initForgotPasswordPage() {
                 method: "POST"
             });
             setAlert(statusEl, "success", "管理员恢复验证码已发送，请检查邮箱和垃圾邮件文件夹。");
-            setButtonLabel(submitButton, "Resend recovery code");
+            setButtonLabel(submitButton, "重新发送恢复验证码");
         } catch (error) {
             setAlert(statusEl, "error", error.message || "恢复邮件发送失败，请稍后重试。");
         } finally {
@@ -382,10 +469,7 @@ function startCountdown(buttons, seconds) {
             window.clearInterval(timer);
             buttons.forEach((button) => {
                 button.disabled = false;
-                button.textContent = button.id === "resendCodeLink" ? "Need a fresh code?" : "Send code";
-                if (button.id === "secondaryCodeButton") {
-                    button.innerHTML = '<span class="button-surface">Send verification code</span><span class="button-hover">Send verification code</span>';
-                }
+                button.textContent = "发送验证码";
             });
             return;
         }
@@ -395,14 +479,6 @@ function startCountdown(buttons, seconds) {
 
 function updateCountdownButtons(buttons, remaining) {
     buttons.forEach((button) => {
-        if (button.id === "resendCodeLink") {
-            button.textContent = `Retry in ${remaining}s`;
-            return;
-        }
-        if (button.id === "secondaryCodeButton") {
-            button.innerHTML = `<span class="button-surface">Retry in ${remaining}s</span><span class="button-hover">Retry in ${remaining}s</span>`;
-            return;
-        }
         button.textContent = `${remaining}s`;
     });
 }
@@ -445,10 +521,20 @@ function setButtonLabel(button, label) {
     const surface = button.querySelector(".button-surface");
     const hover = button.querySelector(".button-hover");
     if (surface) {
-        surface.textContent = label;
+        const surfaceLabel = surface.querySelector(".button-label");
+        if (surfaceLabel) {
+            surfaceLabel.textContent = label;
+        } else {
+            surface.textContent = label;
+        }
     }
     if (hover) {
-        hover.textContent = label;
+        const hoverLabel = hover.querySelector(".button-label");
+        if (hoverLabel) {
+            hoverLabel.textContent = label;
+        } else {
+            hover.textContent = label;
+        }
     }
 }
 

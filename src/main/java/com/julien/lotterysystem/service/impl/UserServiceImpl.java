@@ -152,7 +152,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public void sendAdminEmailCode(String email) {
         validateEmail(email);
-        getAdminByEmail(email);
         sendEmailCodeInternal(email);
     }
 
