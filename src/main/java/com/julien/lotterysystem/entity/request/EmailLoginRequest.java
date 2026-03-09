@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class EmailLoginRequest {
+
     @NotBlank(message = "邮箱不能为空")
     private String email;
 

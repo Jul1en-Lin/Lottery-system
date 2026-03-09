@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-public class JWTUtilTest {
+public class AESUtilTest {
     /**
      * AES对称加密（手机号码）
      */

@@ -5,7 +5,7 @@ import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
 @Data
-public class UserRequest {
+public class UserRegisterRequest {
     /** 用户姓名 */
     @NotBlank(message = "用户姓名不能为空")
     private String userName;
