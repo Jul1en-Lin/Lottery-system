@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery System | Log in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body data-page="login">
+<div class="auth-shell">
+    <aside class="auth-hero">
+        <div class="hero-grid"></div>
+        <div class="hero-glow hero-glow-top"></div>
+        <div class="hero-glow hero-glow-bottom"></div>
+
+        <div class="brand-mark hero-brand">
+            <div class="brand-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+            </div>
+            <div>
+                <p class="brand-name">CareerCompass</p>
+                <p class="brand-subtitle">Lottery access platform</p>
+            </div>
+        </div>
+
+        <div class="hero-copy">
+            <span class="hero-badge">Administrator access only</span>
+            <h2>Secure control access for verified lottery administrators.</h2>
+            <p>Choose password or email verification to enter the management portal. Normal user accounts are blocked from this login flow.</p>
+        </div>
+
+        <div class="character-scene" id="characterScene" aria-hidden="true">
+            <div class="scene-platform"></div>
+            <div class="scene-shadow shadow-left"></div>
+            <div class="scene-shadow shadow-right"></div>
+
+            <div class="character purple-character">
+                <div class="character-head">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+                <div class="character-body typing-body"></div>
+            </div>
+
+            <div class="character black-character">
+                <div class="character-head">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+                <div class="character-body slim-body"></div>
+            </div>
+
+            <div class="character orange-character">
+                <div class="character-head arch-head"></div>
+                <div class="character-face face-center">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+            </div>
+
+            <div class="character yellow-character">
+                <div class="character-head arch-head small"></div>
+                <div class="character-face face-low">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-policies">
+            <a href="javascript:void(0)">Privacy</a>
+            <a href="javascript:void(0)">Terms</a>
+            <a href="javascript:void(0)">Support</a>
+        </div>
+    </aside>
+
+    <main class="auth-panel">
+        <div class="form-panel">
+            <div class="brand-mark mobile-brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                </div>
+                <div>
+                    <p class="brand-name">CareerCompass</p>
+                    <p class="brand-subtitle">Lottery access platform</p>
+                </div>
+            </div>
+
+            <div class="auth-header">
+                <span class="eyebrow">Administrator portal</span>
+                <h1>Welcome back!</h1>
+                <p>Only administrator accounts can sign in here using password or email verification.</p>
+            </div>
+
+            <form class="auth-form" id="loginForm" novalidate>
+                <div class="field-group">
+                    <label for="loginEmail">Email</label>
+                    <input id="loginEmail" name="email" type="email" class="text-input" placeholder="name@company.com" autocomplete="email" required>
+                </div>
+
+                <div class="auth-method-switch" id="loginMethodSwitch" role="tablist" aria-label="Administrator login method">
+                    <button type="button" class="method-chip active" data-mode="password" aria-selected="true">Password</button>
+                    <button type="button" class="method-chip" data-mode="email" aria-selected="false">Email verification</button>
+                </div>
+
+                <div class="field-group login-mode-panel" data-mode-panel="password">
+                    <label for="loginPassword">Password</label>
+                    <div class="input-with-action password-shell">
+                        <input id="loginPassword" name="password" type="password" class="text-input" placeholder="Enter your administrator password" autocomplete="current-password">
+                        <button type="button" class="icon-action" id="toggleLoginPassword" aria-label="Show password">
+                            <span class="icon-eye"></span>
+                        </button>
+                    </div>
+                    <p class="field-hint">If this email belongs to a normal user, access will be denied.</p>
+                </div>
+
+                <div class="field-group login-mode-panel is-hidden" data-mode-panel="email">
+                    <label for="loginCode">Verification code</label>
+                    <div class="input-with-action">
+                        <input id="loginCode" name="code" type="text" class="text-input" inputmode="numeric" maxlength="6" placeholder="Enter the 6-digit code" autocomplete="one-time-code" required>
+                        <button type="button" class="mini-action" id="loginSendCode">Send code</button>
+                    </div>
+                    <p class="field-hint">Only administrator emails can receive login codes. Codes remain valid for 5 minutes.</p>
+                </div>
+
+                <div class="assist-row">
+                    <label class="checkbox-field">
+                        <input id="rememberDevice" type="checkbox">
+                        <span>Remember this device for 30 days</span>
+                    </label>
+                    <div class="assist-actions">
+                        <a class="text-link muted-link" href="/forgot-password">Forgot password?</a>
+                        <button type="button" class="text-link muted-link login-email-only is-hidden" id="resendCodeLink">Need a fresh code?</button>
+                    </div>
+                </div>
+
+                <div class="status-alert" id="loginStatus" role="alert" aria-live="polite"></div>
+
+                <button type="submit" class="action-button primary-button" id="loginSubmit">
+                    <span class="button-surface">Log in with password</span>
+                    <span class="button-hover">Log in with password</span>
+                </button>
+
+                <button type="button" class="action-button secondary-button login-email-only is-hidden" id="secondaryCodeButton">
+                    <span class="button-surface">Send verification code</span>
+                    <span class="button-hover">Send verification code</span>
+                </button>
+            </form>
+
+            <p class="footer-prompt">Administrator access only.</p>
+        </div>
+    </main>
+</div>
+<script src="/js/auth.js" defer></script>
+</body>
+</html>

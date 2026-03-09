@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery System | Sign up</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body data-page="signup">
+<div class="auth-shell">
+    <aside class="auth-hero">
+        <div class="hero-grid"></div>
+        <div class="hero-glow hero-glow-top"></div>
+        <div class="hero-glow hero-glow-bottom"></div>
+
+        <div class="brand-mark hero-brand">
+            <div class="brand-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+            </div>
+            <div>
+                <p class="brand-name">CareerCompass</p>
+                <p class="brand-subtitle">Lottery access platform</p>
+            </div>
+        </div>
+
+        <div class="hero-copy">
+            <span class="hero-badge">Unified auth shell</span>
+            <h2>Create a verified account without leaving the same visual flow.</h2>
+            <p>The registration experience keeps the same hero, spacing, and rounded interactions while collecting only the fields your current API requires.</p>
+        </div>
+
+        <div class="character-scene" id="characterScene" aria-hidden="true">
+            <div class="scene-platform"></div>
+            <div class="scene-shadow shadow-left"></div>
+            <div class="scene-shadow shadow-right"></div>
+
+            <div class="character purple-character">
+                <div class="character-head">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+                <div class="character-body typing-body"></div>
+            </div>
+
+            <div class="character black-character">
+                <div class="character-head">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+                <div class="character-body slim-body"></div>
+            </div>
+
+            <div class="character orange-character">
+                <div class="character-head arch-head"></div>
+                <div class="character-face face-center">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+            </div>
+
+            <div class="character yellow-character">
+                <div class="character-head arch-head small"></div>
+                <div class="character-face face-low">
+                    <div class="eye eye-left"><span class="pupil"></span></div>
+                    <div class="eye eye-right"><span class="pupil"></span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-policies">
+            <a href="javascript:void(0)">Privacy</a>
+            <a href="javascript:void(0)">Terms</a>
+            <a href="javascript:void(0)">Support</a>
+        </div>
+    </aside>
+
+    <main class="auth-panel">
+        <div class="form-panel">
+            <div class="brand-mark mobile-brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                </div>
+                <div>
+                    <p class="brand-name">CareerCompass</p>
+                    <p class="brand-subtitle">Lottery access platform</p>
+                </div>
+            </div>
+
+            <div class="auth-header compact-header">
+                <span class="eyebrow">Email verification signup</span>
+                <h1>Create an account</h1>
+                <p>Join CareerCompass to find your next opportunity</p>
+            </div>
+
+            <form class="auth-form signup-form" id="signupForm" novalidate>
+                <div class="field-group">
+                    <label>I am a...</label>
+                    <div class="role-selector">
+                        <label class="role-option">
+                            <input type="radio" name="identity" value="NORMAL" checked>
+                            <span>
+                                <strong>Normal User</strong>
+                                <small>General lottery participant access</small>
+                            </span>
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="identity" value="ADMIN">
+                            <span>
+                                <strong>Administrator</strong>
+                                <small>Platform operations and review access</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label for="signupUserName">Full name</label>
+                    <input id="signupUserName" name="userName" type="text" class="text-input" placeholder="Enter your full name" autocomplete="name" required>
+                </div>
+
+                <div class="field-group split-grid">
+                    <div>
+                        <label for="signupEmail">Email</label>
+                        <input id="signupEmail" name="email" type="email" class="text-input" placeholder="name@company.com" autocomplete="email" required>
+                    </div>
+                    <div>
+                        <label for="signupPhoneNumber">Phone number</label>
+                        <input id="signupPhoneNumber" name="phoneNumber" type="tel" class="text-input" maxlength="11" placeholder="11-digit mobile number" autocomplete="tel" required>
+                    </div>
+                </div>
+
+                <div class="field-group split-grid">
+                    <div>
+                        <label for="signupPassword">Password</label>
+                        <div class="input-with-action password-shell">
+                            <input id="signupPassword" name="password" type="password" class="text-input" placeholder="Optional, at least 6 letters or digits" autocomplete="new-password">
+                            <button type="button" class="icon-action" id="toggleSignupPassword" aria-label="Show password">
+                                <span class="icon-eye"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="signupCode">Verification code</label>
+                        <div class="input-with-action">
+                            <input id="signupCode" name="code" type="text" class="text-input" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" required>
+                            <button type="button" class="mini-action" id="signupSendCode">Send code</button>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="checkbox-field consent-field">
+                    <input id="signupConsent" type="checkbox" required>
+                    <span>I agree to the <a href="javascript:void(0)">Privacy Policy</a> and <a href="javascript:void(0)">Terms of Service</a>.</span>
+                </label>
+
+                <div class="status-alert" id="signupStatus" role="alert" aria-live="polite"></div>
+
+                <button type="submit" class="action-button primary-button" id="signupSubmit">
+                    <span class="button-surface">Create Account</span>
+                    <span class="button-hover">Create Account</span>
+                </button>
+            </form>
+
+            <p class="footer-prompt">Already have an account? <a href="/login">Sign in</a></p>
+        </div>
+    </main>
+</div>
+<script src="/js/auth.js" defer></script>
+</body>
+</html>

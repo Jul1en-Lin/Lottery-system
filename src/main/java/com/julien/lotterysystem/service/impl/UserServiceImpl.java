@@ -7,6 +7,7 @@ import com.julien.lotterysystem.common.utils.Md5Util;
 import com.julien.lotterysystem.common.utils.RegexUtil;
 import com.julien.lotterysystem.entity.dataobject.Encrypt;
 import com.julien.lotterysystem.entity.dataobject.User;
+import com.julien.lotterysystem.entity.request.AdminPasswordLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailRegisterRequest;
 import com.julien.lotterysystem.entity.request.UserRequest;
@@ -136,11 +137,25 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void sendEmailCode(String email) {
+        validateEmail(email);
+        sendEmailCodeInternal(email);
+    }
+
+    @Override
+    public void sendAdminEmailCode(String email) {
+        validateEmail(email);
+        getAdminByEmail(email);
+        sendEmailCodeInternal(email);
+    }
+
+    private void validateEmail(String email) {
         // 校验邮箱格式
         if (!RegexUtil.checkMail(email)) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "邮箱格式错误");
         }
+    }
 
+    private void sendEmailCodeInternal(String email) {
         // 防止频繁发送：检查Redis中是否已存在未过期的验证码
         String redisKey = EMAIL_CODE_PREFIX + email;
         Long ttl = stringRedisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
@@ -167,25 +182,8 @@ public class UserServiceImpl implements UserService {
         String email = request.getEmail();
         String code = request.getCode();
 
-        // 校验邮箱格式
-        if (!RegexUtil.checkMail(email)) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "邮箱格式错误");
-        }
-
-        // 从Redis获取验证码
-        String redisKey = EMAIL_CODE_PREFIX + email;
-        String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
-
-        if (!StringUtils.hasText(cachedCode)) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码已过期，请重新获取");
-        }
-
-        if (!cachedCode.equals(code)) {
-            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码错误");
-        }
-
-        // 验证码正确，删除Redis中的验证码（一次性使用）
-        stringRedisTemplate.delete(redisKey);
+        validateEmail(email);
+        consumeEmailCode(email, code);
 
         // 查询用户
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
@@ -198,6 +196,62 @@ public class UserServiceImpl implements UserService {
 
         log.info("用户邮箱登录成功，userId：{}, email：{}", user.getId(), email);
         return new EmailLoginResponse(true, user.getId());
+    }
+
+    @Override
+    public UserResponse adminEmailLogin(EmailLoginRequest request) {
+        String email = request.getEmail();
+        validateEmail(email);
+
+        User user = getAdminByEmail(email);
+        consumeEmailCode(email, request.getCode());
+
+        log.info("管理员邮箱验证码登录成功，userId：{}, email：{}", user.getId(), email);
+        return new UserResponse(user.getId());
+    }
+
+    @Override
+    public UserResponse adminPasswordLogin(AdminPasswordLoginRequest request) {
+        String email = request.getEmail();
+        validateEmail(email);
+
+        User user = getAdminByEmail(email);
+        if (!StringUtils.hasText(user.getPassword())) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "该管理员未设置密码，请使用邮箱验证登录");
+        }
+        if (!Md5Util.verifyPassword(request.getPassword(), user.getPassword())) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "密码错误");
+        }
+
+        log.info("管理员密码登录成功，userId：{}, email：{}", user.getId(), email);
+        return new UserResponse(user.getId());
+    }
+
+    private void consumeEmailCode(String email, String code) {
+        String redisKey = EMAIL_CODE_PREFIX + email;
+        String cachedCode = stringRedisTemplate.opsForValue().get(redisKey);
+
+        if (!StringUtils.hasText(cachedCode)) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码已过期，请重新获取");
+        }
+
+        if (!cachedCode.equals(code)) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "验证码错误");
+        }
+
+        stringRedisTemplate.delete(redisKey);
+    }
+
+    private User getAdminByEmail(String email) {
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, email));
+        if (user == null) {
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "管理员账号不存在");
+        }
+        if (!UserIdentity.ADMIN.getIdentity().equalsIgnoreCase(user.getIdentity())) {
+            throw new LotteryException(HttpStatus.FORBIDDEN.value(), "该邮箱属于普通用户，只有管理员才有权限登录");
+        }
+        return user;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.julien.lotterysystem.controller;
 
+import com.julien.lotterysystem.entity.request.AdminPasswordLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailRegisterRequest;
 import com.julien.lotterysystem.entity.request.UserRequest;
@@ -36,11 +37,35 @@ public class UserController {
     }
 
     /**
+     * 向管理员邮箱发送登录验证码
+     */
+    @PostMapping("/admin/sendEmailCode")
+    public void sendAdminEmailCode(@RequestParam @NotBlank(message = "邮箱不能为空") String email) {
+        userService.sendAdminEmailCode(email);
+    }
+
+    /**
      * 邮箱验证码登录（未注册时返回 registered=false，前端跳转注册页——）
      */
     @PostMapping("/emailLogin")
     public EmailLoginResponse emailLogin(@Valid @RequestBody EmailLoginRequest request) {
         return userService.emailLogin(request);
+    }
+
+    /**
+     * 管理员邮箱验证码登录
+     */
+    @PostMapping("/admin/emailLogin")
+    public UserResponse adminEmailLogin(@Valid @RequestBody EmailLoginRequest request) {
+        return userService.adminEmailLogin(request);
+    }
+
+    /**
+     * 管理员密码登录
+     */
+    @PostMapping("/admin/passwordLogin")
+    public UserResponse adminPasswordLogin(@Valid @RequestBody AdminPasswordLoginRequest request) {
+        return userService.adminPasswordLogin(request);
     }
 
     /**
