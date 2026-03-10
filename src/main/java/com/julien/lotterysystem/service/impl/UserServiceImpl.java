@@ -1,7 +1,7 @@
 package com.julien.lotterysystem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.julien.lotterysystem.common.enums.UserIdentity;
+import com.julien.lotterysystem.common.enums.UserIdentityEnum;
 import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JwtUtil;
 import com.julien.lotterysystem.common.utils.Md5Util;
@@ -12,6 +12,7 @@ import com.julien.lotterysystem.entity.request.PasswordLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailRegisterRequest;
 import com.julien.lotterysystem.entity.request.UserRegisterRequest;
+import com.julien.lotterysystem.entity.response.UserInfoResponse;
 import com.julien.lotterysystem.entity.response.UserLoginResponse;
 import com.julien.lotterysystem.entity.response.UserResponse;
 import com.julien.lotterysystem.mapper.UserMapper;
@@ -25,7 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -64,7 +67,7 @@ public class UserServiceImpl implements UserService {
         // 校验格式
         checkUserInfoFormat(request);
         // 检验密码（如管理员则不可为空）
-        if (request.getIdentity().equalsIgnoreCase(UserIdentity.ADMIN.getIdentity())
+        if (request.getIdentity().equalsIgnoreCase(UserIdentityEnum.ADMIN.getIdentity())
                 && !StringUtils.hasText(request.getPassword())) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(),"管理员密码不能为空");
         }
@@ -146,18 +149,12 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    /**
-     * 发送邮箱验证码（注册）
-     */
     @Override
     public void sendEmailCode(String email) {
         validateEmail(email);
         sendEmailCodeInternal(email);
     }
 
-    /**
-     * 发送邮箱验证码（管理员）
-     */
     @Override
     public void sendAdminEmailCode(String email) {
         validateEmail(email);
@@ -186,9 +183,6 @@ public class UserServiceImpl implements UserService {
         log.info("邮箱验证码已发送，邮箱：{}", email);
     }
 
-    /**
-     * 管理员邮箱验证码登录
-     */
     @Override
     public UserLoginResponse adminEmailLogin(@Valid EmailLoginRequest request) {
         String email = request.getEmail();
@@ -204,9 +198,6 @@ public class UserServiceImpl implements UserService {
         return new UserLoginResponse(token,user.getId());
     }
 
-    /**
-     * 管理员密码登录
-     */
     @Override
     public UserLoginResponse adminPasswordLogin(@Valid PasswordLoginRequest request) {
         String email = request.getEmail();
@@ -262,15 +253,12 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "管理员账号不存在");
         }
-        if (!UserIdentity.ADMIN.getIdentity().equalsIgnoreCase(user.getIdentity())) {
+        if (!UserIdentityEnum.ADMIN.getIdentity().equalsIgnoreCase(user.getIdentity())) {
             throw new LotteryException(HttpStatus.FORBIDDEN.value(), "该邮箱属于普通用户，只有管理员才有权限登录");
         }
         return user;
     }
 
-    /**
-     * 邮箱验证码注册
-     */
     @Override
     public UserResponse emailRegister(EmailRegisterRequest request) {
         String email = request.getEmail();
@@ -284,5 +272,36 @@ public class UserServiceImpl implements UserService {
         checkRegisterInfo(request); // 多了一层邮箱校验
         // 插入用户数据
         return insertUser(request);
+    }
+
+    @Override
+    public List<UserInfoResponse> getListInfo(UserIdentityEnum identityEnum) {
+        // 避免空指针异常，同时校验用户信息
+        String identity = identityEnum == null ? null : identityEnum.getIdentity();
+        log.info("获取用户列表信息，身份为：identity：{}", identity);
+        List<User> userInfo;
+        try {
+            if (identity == null) {
+                userInfo = userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .select(User::getId, User::getUserName, User::getEmail, User::getIdentity));
+            }
+            else {
+                userInfo = userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .select(User::getId, User::getUserName, User::getEmail, User::getIdentity)
+                        .eq(User::getIdentity, identity));
+            }
+        } catch (RuntimeException e) {
+            throw new LotteryException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "查询用户列表信息失败");
+        }
+
+        // 转换为响应对象
+        return userInfo.stream().map(user -> {
+            UserInfoResponse response = new UserInfoResponse();
+            response.setId(user.getId());
+            response.setEmail(user.getEmail());
+            response.setIdentity(user.getIdentity());
+            response.setUserName(user.getUserName());
+            return response;
+        }).toList(); // 使用toList()方法将流转换为列表，且列表不可修改，提高安全性
     }
 }

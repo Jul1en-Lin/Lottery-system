@@ -1,15 +1,21 @@
 package com.julien.lotterysystem.controller;
 
 import com.julien.lotterysystem.entity.request.PasswordLoginRequest;
+import com.julien.lotterysystem.common.enums.UserIdentityEnum;
 import com.julien.lotterysystem.entity.request.EmailLoginRequest;
 import com.julien.lotterysystem.entity.request.EmailRegisterRequest;
 import com.julien.lotterysystem.entity.request.UserRegisterRequest;
+import com.julien.lotterysystem.entity.response.UserInfoResponse;
 import com.julien.lotterysystem.entity.response.UserLoginResponse;
 import com.julien.lotterysystem.entity.response.UserResponse;
 import com.julien.lotterysystem.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -66,5 +72,13 @@ public class UserController {
     @PostMapping("/emailRegister")
     public UserResponse emailRegister(@Valid @RequestBody EmailRegisterRequest request) {
         return userService.emailRegister(request);
+    }
+
+    /**
+     * 获取用户列表信息
+     */
+    @GetMapping("/getListInfo")
+    public List<UserInfoResponse> getListInfo(UserIdentityEnum identity) {
+        return userService.getListInfo(identity);
     }
 }
