@@ -229,9 +229,11 @@ function initLoginPage() {
             sessionStorage.setItem("auth-session", JSON.stringify({
                 email,
                 userId: result.data.id,
+                token: result.data.token,
+                identity: "ADMIN",
                 remember
             }));
-            setAlert(statusEl, "success", `管理员登录成功，用户 ID：${result.data.id}。当前项目尚未提供后台首页，因此停留在本页展示结果。`);
+            window.location.href = "/admin/activity-center";
         } catch (error) {
             setAlert(statusEl, "error", error.message || "登录失败，请稍后重试。");
         } finally {

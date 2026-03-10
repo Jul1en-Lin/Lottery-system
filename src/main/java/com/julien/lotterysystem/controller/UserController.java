@@ -29,6 +29,14 @@ public class UserController {
     }
 
     /**
+     * 向邮箱发送注册验证码
+     */
+    @PostMapping("/sendEmailCode")
+    public void sendEmailCode(@RequestParam @NotBlank(message = "邮箱不能为空") String email) {
+        userService.sendEmailCode(email);
+    }
+
+    /**
      * 向管理员邮箱发送登录验证码
      */
     @PostMapping("/admin/sendEmailCode")

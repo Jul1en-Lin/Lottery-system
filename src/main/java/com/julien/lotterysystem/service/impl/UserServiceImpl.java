@@ -147,6 +147,15 @@ public class UserServiceImpl implements UserService {
 
 
     /**
+     * 发送邮箱验证码（注册）
+     */
+    @Override
+    public void sendEmailCode(String email) {
+        validateEmail(email);
+        sendEmailCodeInternal(email);
+    }
+
+    /**
      * 发送邮箱验证码（管理员）
      */
     @Override

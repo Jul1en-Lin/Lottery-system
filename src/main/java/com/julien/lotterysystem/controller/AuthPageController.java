@@ -25,4 +25,9 @@ public class AuthPageController {
     public String forgotPassword() {
         return "forward:/forgot-password.html";
     }
+
+    @GetMapping("/admin/activity-center")
+    public String adminActivityCenter() {
+        return "forward:/admin-activity-center.html";
+    }
 }

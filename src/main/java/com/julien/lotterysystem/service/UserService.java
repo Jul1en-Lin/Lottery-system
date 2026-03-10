@@ -18,6 +18,11 @@ public interface UserService {
 
 
     /**
+        * 发送邮箱验证码（通用注册）
+        */
+        void sendEmailCode(String email);
+
+        /**
      * 向管理员邮箱发送登录验证码
      */
     void sendAdminEmailCode(String email);
