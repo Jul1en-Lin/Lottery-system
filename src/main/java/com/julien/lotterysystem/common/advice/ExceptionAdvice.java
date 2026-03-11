@@ -1,6 +1,6 @@
 package com.julien.lotterysystem.common.advice;
 
-import com.julien.lotterysystem.common.constants.ControllerErrorConstants;
+import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.entity.errorcode.ErrorCode;
 import com.julien.lotterysystem.entity.response.Result;
@@ -49,7 +49,7 @@ public class ExceptionAdvice {
         FieldError fieldError = bindingResult.getFieldError();
         String message = fieldError != null ? fieldError.getDefaultMessage() : "传参校验失败";
         log.warn("Valid传参校验失败: {}", message);
-        return Result.fail(new ErrorCode(ControllerErrorConstants.VALIDATION_FAILED,message));
+        return Result.fail(new ErrorCode(ErrorConstants.VALIDATION_FAILED,message));
     }
 
     /**

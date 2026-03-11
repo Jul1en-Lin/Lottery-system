@@ -10,7 +10,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName(value = "user", autoResultMap = true)
+@TableName(value = "user", autoResultMap = true)// autoResultMap：让 MyBatis-Plus typeHandler 之类的配置生效
 public class User {
     /** 主键 */
     @TableId(value = "id",type = IdType.AUTO)

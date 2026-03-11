@@ -3,6 +3,9 @@ package com.julien.lotterysystem.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
+/**
+ * 页面路由转发：把浏览器访问的路径映射到对应的前端页面。
+ */
 @Controller
 public class AuthPageController {
 

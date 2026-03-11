@@ -33,3 +33,7 @@ logging:
   config: classpath:logback-spring.xml
   file:
     name: lottery-system.log
+
+# 本地直接启动时，默认会写到你当前启动目录下的 picture 文件夹
+picture:
+  destPath: ${PICTURE_DEST_PATH:${user.dir}/picture/}

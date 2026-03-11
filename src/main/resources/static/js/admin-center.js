@@ -65,24 +65,11 @@ const defaultPrizes = [
     }
 ];
 
-const defaultMembers = [
-    {
-        id: "ADMIN-001",
-        userName: "系统管理员",
-        email: "admin@example.com",
-        identity: "ADMIN",
-        status: "已激活"
-    },
-    {
-        id: "NORMAL-101",
-        userName: "张晓晴",
-        email: "member.one@example.com",
-        identity: "NORMAL",
-        status: "已激活"
-    }
-];
-
 document.addEventListener("DOMContentLoaded", () => {
+    void initializeAdminCenter();
+});
+
+async function initializeAdminCenter() {
     const session = readAdminSession();
     if (!session) {
         return;
@@ -92,7 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
         session,
         activities: readStorage(STORAGE_KEYS.activities, defaultActivities),
         prizes: readStorage(STORAGE_KEYS.prizes, defaultPrizes),
-        members: mergeMemberSeed(readStorage(STORAGE_KEYS.members, defaultMembers), session)
+        members: [],
+        memberFilter: "",
+        memberLoading: false,
+        memberLoadError: ""
     };
 
     cacheElements(state);
@@ -101,9 +91,11 @@ document.addEventListener("DOMContentLoaded", () => {
     bindActivityForm(state);
     bindPrizeForm(state);
     bindMemberForm(state);
+    bindMemberFilter(state);
     bindLogout(state);
     renderAll(state);
-});
+    await loadMembers(state);
+}
 
 function readAdminSession() {
     const raw = sessionStorage.getItem("auth-session");
@@ -136,6 +128,7 @@ function cacheElements(state) {
         activityListCount: document.getElementById("activityListCount"),
         prizeListCount: document.getElementById("prizeListCount"),
         memberListCount: document.getElementById("memberListCount"),
+        memberIdentityFilter: document.getElementById("memberIdentityFilter"),
         activityList: document.getElementById("activityList"),
         prizeList: document.getElementById("prizeList"),
         memberTableBody: document.getElementById("memberTableBody"),
@@ -143,6 +136,7 @@ function cacheElements(state) {
         prizeForm: document.getElementById("prizeForm"),
         memberForm: document.getElementById("memberForm"),
         memberSendCode: document.getElementById("memberSendCode"),
+        memberListAlert: document.getElementById("memberListAlert"),
         activityStatusAlert: document.getElementById("activityStatusAlert"),
         prizeStatusAlert: document.getElementById("prizeStatusAlert"),
         memberStatusAlert: document.getElementById("memberStatusAlert"),
@@ -159,6 +153,10 @@ function cacheElements(state) {
 
     if (state.elements.sessionEmail) {
         state.elements.sessionEmail.textContent = state.session.email || "管理员会话";
+    }
+
+    if (state.elements.memberIdentityFilter) {
+        state.elements.memberIdentityFilter.value = state.memberFilter;
     }
 }
 
@@ -442,15 +440,7 @@ function bindMemberForm(state) {
                 body: JSON.stringify(payload)
             });
 
-            state.members.unshift({
-                id: result.data.id,
-                userName: payload.userName,
-                email: payload.email,
-                identity: payload.identity,
-                status: "已激活"
-            });
-            persistState(STORAGE_KEYS.members, state.members);
-            renderMembers(state);
+            await loadMembers(state);
             renderMetrics(state);
             form.reset();
             showInlineStatus(state.elements.memberStatusAlert, "success", `普通用户注册成功，用户 ID：${result.data.id}。`);
@@ -459,6 +449,18 @@ function bindMemberForm(state) {
         } finally {
             setButtonBusy(document.getElementById("memberSubmit"), false);
         }
+    });
+}
+
+function bindMemberFilter(state) {
+    const filter = state.elements.memberIdentityFilter;
+    if (!filter) {
+        return;
+    }
+
+    filter.addEventListener("change", () => {
+        state.memberFilter = filter.value;
+        void loadMembers(state);
     });
 }
 
@@ -541,6 +543,26 @@ function renderMembers(state) {
         return;
     }
 
+    if (state.memberLoading) {
+        tbody.innerHTML = `
+        <tr class="admin-table-empty">
+            <td colspan="4">正在加载人员列表...</td>
+        </tr>
+    `;
+        state.elements.memberListCount.textContent = "加载中";
+        return;
+    }
+
+    if (!state.members.length) {
+        tbody.innerHTML = `
+        <tr class="admin-table-empty">
+            <td colspan="4">暂无符合条件的人员数据</td>
+        </tr>
+    `;
+        state.elements.memberListCount.textContent = "0 人";
+        return;
+    }
+
     tbody.innerHTML = state.members.map((member) => `
         <tr>
             <td>${escapeHtml(member.userName)}</td>
@@ -559,19 +581,46 @@ function renderMetrics(state) {
     state.elements.memberCount.textContent = String(state.members.length);
 }
 
-function mergeMemberSeed(members, session) {
-    const nextMembers = Array.isArray(members) ? [...members] : [];
-    const hasAdmin = nextMembers.some((member) => member.email === session.email);
-    if (!hasAdmin) {
-        nextMembers.unshift({
-            id: session.userId || "ADMIN-CURRENT",
-            userName: "当前管理员",
-            email: session.email,
-            identity: "ADMIN",
-            status: "已登录"
-        });
+async function loadMembers(state) {
+    state.memberLoading = true;
+    state.memberLoadError = "";
+    clearInlineStatus(state.elements.memberListAlert);
+    renderMembers(state);
+
+    const query = state.memberFilter ? `?identity=${encodeURIComponent(state.memberFilter)}` : "";
+
+    try {
+        const result = await requestJson(`/user/getListInfo${query}`);
+        state.members = normalizeMembers(Array.isArray(result?.data) ? result.data : result);
+        state.memberLoading = false;
+        renderMembers(state);
+        renderMetrics(state);
+    } catch (error) {
+        state.members = [];
+        state.memberLoading = false;
+        state.memberLoadError = error.message || "人员列表加载失败，请稍后重试。";
+        showInlineStatus(state.elements.memberListAlert, "error", state.memberLoadError);
+        renderMembers(state);
+        renderMetrics(state);
     }
-    return nextMembers;
+}
+
+function normalizeMembers(members) {
+    if (!Array.isArray(members)) {
+        return [];
+    }
+
+    return members.map((member) => ({
+        id: member?.id ?? "",
+        userName: member?.userName || "未命名用户",
+        email: member?.email || "-",
+        identity: normalizeIdentity(member?.identity),
+        status: "已激活"
+    }));
+}
+
+function normalizeIdentity(identity) {
+    return String(identity || "").toUpperCase() === "ADMIN" ? "ADMIN" : "NORMAL";
 }
 
 function readStorage(key, fallback) {

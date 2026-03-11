@@ -106,42 +106,20 @@
         </header>
 
         <div class="admin-content-stage">
-        <section class="admin-panel admin-hero is-active" id="overview" data-panel="overview">
-            <div class="admin-hero-copy">
-                <span class="hero-badge">活动运营面板</span>
-                <h2>在同一个后台里管理抽奖活动、奖品池和用户入场流程。</h2>
-                <p>界面沿用登录与注册页的干净圆角、柔和边框和品牌色重点，右侧工作区聚焦管理效率，左侧导航以紧凑图标方式固定展示。</p>
-                <div class="hero-actions-row">
-                    <a class="hero-primary-action" href="#activities" data-nav-target="activities">新建抽奖活动</a>
-                    <a class="hero-secondary-action" href="#members" data-nav-target="members">注册普通用户</a>
-                </div>
-            </div>
+        <section class="admin-panel admin-hero admin-hero-compact is-active" id="overview" data-panel="overview">
             <div class="admin-hero-board">
-                <div class="hero-board-card">
-                    <span>本周运营焦点</span>
-                    <strong>春季专场抽奖</strong>
-                    <p>活动、奖品、人员联动配置全部集中在一个页面内完成。</p>
-                </div>
                 <div class="hero-board-grid">
                     <article class="metric-card">
                         <span>活动数</span>
                         <strong id="activityCount">0</strong>
-                        <p>含草稿与进行中</p>
                     </article>
                     <article class="metric-card">
                         <span>奖品数</span>
                         <strong id="prizeCount">0</strong>
-                        <p>按层级统一管理库存</p>
                     </article>
                     <article class="metric-card">
                         <span>人员数</span>
                         <strong id="memberCount">0</strong>
-                        <p>含管理员与普通用户</p>
-                    </article>
-                    <article class="metric-card accent-card">
-                        <span>下一步</span>
-                        <strong>发布活动</strong>
-                        <p>补齐真实接口后即可串联业务流</p>
                     </article>
                 </div>
             </div>
@@ -302,17 +280,26 @@
                     <span class="eyebrow">人员管理模块</span>
                     <h3>人员列表与注册普通用户</h3>
                 </div>
-                <p>普通用户注册接入现有邮箱验证码注册接口，人员列表仍以前端展示为主。</p>
             </div>
             <div class="module-grid two-column members-layout">
                 <article class="admin-card list-card">
                     <div class="card-header-row">
                         <div>
                             <h4>人员列表</h4>
-                            <p>当前展示管理员账号与已录入的普通用户。</p>
                         </div>
-                        <span class="card-count-pill" id="memberListCount">0 人</span>
+                        <div class="card-header-actions">
+                            <label class="member-filter-field" for="memberIdentityFilter">
+                                <span>身份筛选</span>
+                                <select id="memberIdentityFilter" aria-label="按身份筛选人员列表">
+                                    <option value="">全部人员</option>
+                                    <option value="ADMIN">管理员</option>
+                                    <option value="NORMAL">普通用户</option>
+                                </select>
+                            </label>
+                            <span class="card-count-pill" id="memberListCount">0 人</span>
+                        </div>
                     </div>
+                    <div class="inline-status member-list-alert" id="memberListAlert" role="alert" aria-live="polite"></div>
                     <div class="table-shell">
                         <table class="admin-table">
                             <thead>

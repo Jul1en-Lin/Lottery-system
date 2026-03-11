@@ -16,9 +16,9 @@
     --sidebar-icon-muted: rgba(71, 85, 105, 0.9);
     --sidebar-icon-active-bg: linear-gradient(180deg, rgba(239, 241, 244, 0.72), rgba(224, 228, 233, 0.82));
     --sidebar-icon-active-border: rgba(255, 255, 255, 0.58);
-    --sidebar-expand-duration: 0.38s;
+    --sidebar-expand-duration: 0.56s;
     --sidebar-expand-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --sidebar-label-delay: 0.08s;
+    --sidebar-label-delay: 0.14s;
 }
 
 body[data-page="admin-center"] {
@@ -404,6 +404,10 @@ body[data-page="admin-center"] {
     gap: 22px;
 }
 
+.admin-hero-compact {
+    grid-template-columns: 1fr;
+}
+
 .admin-content-stage {
     position: relative;
     min-height: 0;
@@ -550,6 +554,10 @@ body[data-page="admin-center"] {
     gap: 14px;
 }
 
+.admin-hero-compact .hero-board-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .metric-card {
     padding: 18px;
     border-radius: 18px;
@@ -624,6 +632,44 @@ body[data-page="admin-center"] {
     gap: 16px;
     align-items: flex-start;
     margin-bottom: 18px;
+}
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.member-filter-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.member-filter-field span {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.member-filter-field select {
+    min-width: 132px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--foreground);
+}
+
+.member-filter-field select:focus {
+    outline: none;
+    border-color: var(--focus-border);
+    box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .card-count-pill {
@@ -838,6 +884,10 @@ body[data-page="admin-center"] {
     border-color: var(--error-border);
 }
 
+.member-list-alert {
+    margin-bottom: 14px;
+}
+
 .table-shell {
     overflow: auto;
     border-radius: 18px;
@@ -865,6 +915,11 @@ body[data-page="admin-center"] {
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+.admin-table-empty td {
+    text-align: center;
+    color: var(--muted);
 }
 
 .member-role {
@@ -910,6 +965,10 @@ body[data-page="admin-center"] {
 @media (max-width: 1180px) {
     .admin-hero,
     .module-grid.two-column {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-hero-compact .hero-board-grid {
         grid-template-columns: 1fr;
     }
 
@@ -989,6 +1048,24 @@ body[data-page="admin-center"] {
     .hero-actions-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .card-header-actions,
+    .member-filter-field {
+        width: 100%;
+    }
+
+    .card-header-actions {
+        justify-content: space-between;
+    }
+
+    .member-filter-field {
+        justify-content: space-between;
+    }
+
+    .member-filter-field select {
+        flex: 1;
+        min-width: 0;
     }
 
     .form-grid.two-up,
