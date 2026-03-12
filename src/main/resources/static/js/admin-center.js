@@ -78,7 +78,9 @@ async function initializeAdminCenter() {
     const state = {
         session,
         activities: readStorage(STORAGE_KEYS.activities, defaultActivities),
-        prizes: readStorage(STORAGE_KEYS.prizes, defaultPrizes),
+        prizes: [],
+        prizeLoading: false,
+        prizeLoadError: "",
         members: [],
         memberFilter: "",
         memberLoading: false,
@@ -94,6 +96,7 @@ async function initializeAdminCenter() {
     bindMemberFilter(state);
     bindLogout(state);
     renderAll(state);
+    await loadPrizes(state);
     await loadMembers(state);
 }
 
@@ -136,6 +139,7 @@ function cacheElements(state) {
         prizeForm: document.getElementById("prizeForm"),
         memberForm: document.getElementById("memberForm"),
         memberSendCode: document.getElementById("memberSendCode"),
+        prizeListAlert: document.getElementById("prizeListAlert"),
         memberListAlert: document.getElementById("memberListAlert"),
         activityStatusAlert: document.getElementById("activityStatusAlert"),
         prizeStatusAlert: document.getElementById("prizeStatusAlert"),
@@ -351,11 +355,10 @@ function bindPrizeForm(state) {
             id: `PRIZE-${Date.now()}`,
             ...payload
         });
-        persistState(STORAGE_KEYS.prizes, state.prizes);
         renderPrizes(state);
         renderMetrics(state);
         form.reset();
-        showInlineStatus(state.elements.prizeStatusAlert, "success", "奖品已加入本地奖池列表。");
+        showInlineStatus(state.elements.prizeStatusAlert, "success", "奖品已加入当前页面列表。");
     });
 }
 
@@ -514,22 +517,41 @@ function renderPrizes(state) {
         return;
     }
 
+    if (state.prizeLoading) {
+        container.innerHTML = `
+        <article class="prize-item prize-item-empty">
+            <p>正在加载奖品列表...</p>
+        </article>
+    `;
+        state.elements.prizeListCount.textContent = "加载中";
+        return;
+    }
+
+    if (!state.prizes.length) {
+        container.innerHTML = `
+        <article class="prize-item prize-item-empty">
+            <p>暂无奖品数据</p>
+        </article>
+    `;
+        state.elements.prizeListCount.textContent = "0 个奖品";
+        return;
+    }
+
     container.innerHTML = state.prizes.map((prize) => `
         <article class="prize-item">
             <div class="prize-item-top">
                 <div>
                     <h5 class="prize-item-title">${escapeHtml(prize.name)}</h5>
                     <div class="list-item-meta">
-                        <span class="meta-pill">${escapeHtml(prize.tier)}</span>
-                        <span class="meta-pill">${escapeHtml(prize.delivery)}</span>
+                        <span class="meta-pill">价格 ${formatPrice(prize.price)}</span>
+                        <span class="meta-pill">编号 ${escapeHtml(String(prize.id))}</span>
                     </div>
                 </div>
-                <span class="card-count-pill">库存 ${prize.stock}</span>
+                <span class="card-count-pill">奖品</span>
             </div>
-            <p>${escapeHtml(prize.notes || "暂无奖品说明")}</p>
+            <p>${escapeHtml(prize.description || prize.notes || "暂无奖品说明")}</p>
             <div class="list-item-meta">
-                <span class="meta-pill">概率 ${Number(prize.probability || 0).toFixed(2)}%</span>
-                <span class="meta-pill">编号 ${escapeHtml(String(prize.id))}</span>
+                <span class="meta-pill">图片 ${escapeHtml(prize.imageUrl || "未设置")}</span>
             </div>
         </article>
     `).join("");
@@ -603,6 +625,43 @@ async function loadMembers(state) {
         renderMembers(state);
         renderMetrics(state);
     }
+}
+
+async function loadPrizes(state) {
+    state.prizeLoading = true;
+    state.prizeLoadError = "";
+    clearInlineStatus(state.elements.prizeListAlert);
+    renderPrizes(state);
+
+    try {
+        const result = await requestJson("/prize/getList?current=1&size=10");
+        const pageData = result?.data ?? result;
+        state.prizes = normalizePrizes(pageData?.records);
+        state.prizeLoading = false;
+        renderPrizes(state);
+        renderMetrics(state);
+    } catch (error) {
+        state.prizes = [];
+        state.prizeLoading = false;
+        state.prizeLoadError = error.message || "奖品列表加载失败，请稍后重试。";
+        showInlineStatus(state.elements.prizeListAlert, "error", state.prizeLoadError);
+        renderPrizes(state);
+        renderMetrics(state);
+    }
+}
+
+function normalizePrizes(prizes) {
+    if (!Array.isArray(prizes)) {
+        return [];
+    }
+
+    return prizes.map((prize) => ({
+        id: prize?.id ?? "",
+        name: prize?.name || "未命名奖品",
+        imageUrl: prize?.imageUrl || "",
+        price: prize?.price ?? 0,
+        description: prize?.description || ""
+    }));
 }
 
 function normalizeMembers(members) {
@@ -733,4 +792,12 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/\"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+function formatPrice(value) {
+    const amount = Number(value ?? 0);
+    if (Number.isNaN(amount)) {
+        return String(value || "0");
+    }
+    return amount.toFixed(2);
 }
