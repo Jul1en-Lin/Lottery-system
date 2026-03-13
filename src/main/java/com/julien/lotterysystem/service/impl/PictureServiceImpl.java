@@ -20,7 +20,7 @@ public class PictureServiceImpl implements PictureService {
     public String destPath;
 
     /**
-     * 保存上传图片并返回生成后的文件名。
+     * 保存上传图片并返回生成后的文件名
      */
     @Override
     public String uploadPicture(MultipartFile file) {
@@ -33,7 +33,7 @@ public class PictureServiceImpl implements PictureService {
         String suffix = fileName.substring(fileName.lastIndexOf("."));
         fileName = UUID.randomUUID() + suffix;
 
-        // 保存图片到指定目录
+        // 保存图片到指定目录（本机）
         try {
             file.transferTo(new File(destPath + "/" + fileName));
             log.info("上传图片路径为：{}", destPath + "/" + fileName);

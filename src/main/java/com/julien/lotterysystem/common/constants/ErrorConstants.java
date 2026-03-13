@@ -9,6 +9,8 @@ public interface ErrorConstants {
     // ------- 奖品模块 --------- //
     // 图片上传失败
     Integer UPLOAD_PICTURE_FAILED = 200;
+    // 图片路径不能为空
+    Integer PICTURE_PATH_EMPTY = 201;
 
     // ------- 参数校验 --------- //
     // 参数校验失败
