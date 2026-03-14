@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽奖系统 | 活动详情</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site-design-system.css">
+</head>
+<body data-page="site-activity-detail">
+<main class="site-shell">
+    <header class="site-navbar">
+        <a class="site-brand" href="/homepage"><span class="site-brand-mark"></span><span>LuckyFlow</span></a>
+        <nav class="site-nav-links">
+            <a href="/homepage">首页</a>
+            <a href="/activity-list">活动列表</a>
+            <a class="is-active" href="/activity-detail">活动详情</a>
+            <a href="/user-center">用户中心</a>
+            <a href="/prize-record">中奖记录</a>
+        </nav>
+        <button class="site-nav-cta" data-open-modal="invite">立即抽奖</button>
+    </header>
+
+    <section class="site-main">
+        <section class="event-detail-shell">
+            <div class="event-hero-head">
+                <p class="site-kicker">Trusted Lucky Draw Campaign</p>
+                <h1><span class="accent">TRUSTED PARTNER</span> IN<br>VETERINARY CARE</h1>
+                <p>保持统一视觉体系：深青主背景、荧光绿强调、清晰高对比文字与产品级卡片组件，打造一致的活动详情体验。</p>
+                <div class="action-row">
+                    <button class="action-btn" data-open-modal="invite">Call for Emergency</button>
+                    <button class="outline-btn">See Our Services</button>
+                </div>
+            </div>
+
+            <div class="event-top-grid">
+                <article class="event-metric-chip">
+                    <span>参与人数</span>
+                    <strong id="detailParticipantCount">10,240</strong>
+                </article>
+                <article class="event-metric-chip">
+                    <span>剩余抽奖次数</span>
+                    <strong id="detailDrawCount">3</strong>
+                </article>
+                <article class="event-metric-chip">
+                    <span>活动倒计时</span>
+                    <strong id="detailCountdown">08:00:00</strong>
+                </article>
+                <article class="event-metric-chip">
+                    <span>工作时间</span>
+                    <strong>9.00AM-11.00PM</strong>
+                </article>
+            </div>
+
+            <section class="content-grid">
+                <article class="panel-card span-7">
+                    <div class="section-head">
+                        <div>
+                            <h3>Prize Showcase</h3>
+                            <p>统一奖品卡片系统：图片、名称、库存、概率与详情联动。</p>
+                        </div>
+                        <span class="tag">Cards</span>
+                    </div>
+                    <div class="detail-prize-grid">
+                        <button class="detail-prize-card is-active" type="button" data-prize-name="智能看护设备" data-prize-prob="6.8%" data-prize-stock="8" data-prize-desc="高性能健康监测设备，支持远程查看宠物状态。">
+                            <span class="prob">概率 6.8%</span>
+                            <strong>智能看护设备</strong>
+                            <p>库存 8 · 高性能健康监测设备</p>
+                        </button>
+                        <button class="detail-prize-card" type="button" data-prize-name="宠物体检套餐" data-prize-prob="12.4%" data-prize-stock="24" data-prize-desc="线下门店体检服务，含基础筛查与专家咨询。">
+                            <span class="prob">概率 12.4%</span>
+                            <strong>宠物体检套餐</strong>
+                            <p>库存 24 · 线下门店体检服务</p>
+                        </button>
+                        <button class="detail-prize-card" type="button" data-prize-name="全年保险权益" data-prize-prob="4.2%" data-prize-stock="5" data-prize-desc="全年门诊与紧急救助权益，覆盖核心医疗场景。">
+                            <span class="prob">概率 4.2%</span>
+                            <strong>全年保险权益</strong>
+                            <p>库存 5 · 全年门诊与救助权益</p>
+                        </button>
+                    </div>
+                </article>
+
+                <article class="panel-card span-5 detail-spotlight">
+                    <div class="section-head">
+                        <div>
+                            <h3 id="detailPrizeName">智能看护设备</h3>
+                            <p id="detailPrizeMeta">库存 8 · 概率 6.8%</p>
+                        </div>
+                        <button class="modal-trigger" data-open-modal="invite">立即抽奖</button>
+                    </div>
+                    <p id="detailPrizeDesc">高性能健康监测设备，支持远程查看宠物状态。</p>
+                    <div class="capsule-row">
+                        <span class="info-capsule">邀请好友 +1 次机会</span>
+                        <span class="info-capsule">已邀请 18 人</span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="content-grid">
+                <article class="panel-card span-5">
+                    <div class="section-head"><div><h3>Recent Winners</h3><p>滚动展示最新中奖动态</p></div><span class="tag">Live</span></div>
+                    <ul class="detail-winner-list" id="detailWinnerList">
+                        <li><span>林*然</span><strong>智能看护设备</strong><time>10:12</time></li>
+                        <li><span>赵*菲</span><strong>宠物体检套餐</strong><time>10:20</time></li>
+                        <li><span>吴*诺</span><strong>全年保险权益</strong><time>10:28</time></li>
+                        <li><span>陈*宇</span><strong>智能看护设备</strong><time>10:33</time></li>
+                    </ul>
+                </article>
+
+                <article class="panel-card span-4">
+                    <div class="section-head"><div><h3>Activity Rules</h3><p>保留必要规则胶囊，简洁清晰</p></div><span class="tag">Rules</span></div>
+                    <ul class="site-list">
+                        <li><span>实名参与</span><strong>必填</strong><time>规则 1</time></li>
+                        <li><span>每日次数</span><strong>3 次</strong><time>规则 2</time></li>
+                        <li><span>领奖时限</span><strong>72 小时</strong><time>规则 3</time></li>
+                    </ul>
+                </article>
+
+                <article class="panel-card span-3">
+                    <div class="section-head"><div><h3>Share & Invite</h3><p>一键分享拉新</p></div><span class="tag">Social</span></div>
+                    <div class="action-row">
+                        <button class="action-btn">WeChat</button>
+                        <button class="outline-btn">Weibo</button>
+                    </div>
+                    <div class="action-row">
+                        <button class="outline-btn">QQ</button>
+                        <button class="action-btn">Copy Link</button>
+                    </div>
+                </article>
+            </section>
+        </section>
+    </section>
+</main>
+
+<div class="site-modal" id="siteModal" aria-hidden="true">
+    <div class="site-modal-panel" role="dialog" aria-modal="true" aria-label="抽奖确认">
+        <h4>确认发起抽奖</h4>
+        <p>本次抽奖将消耗 1 次机会，中奖结果将同步到中奖记录页。</p>
+        <div class="site-modal-actions">
+            <button class="site-close" data-close-modal="draw">取消</button>
+            <button class="action-btn">确认抽奖</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/site-ui.js" defer></script>
+</body>
+</html>

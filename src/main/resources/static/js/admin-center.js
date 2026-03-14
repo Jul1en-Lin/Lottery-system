@@ -10,6 +10,50 @@ const PRIZE_TIER_LABELS = {
     TIER_3: "三等奖"
 };
 
+const DEFAULT_EVENT_PRIZES = [
+    {
+        name: "限量智能手表",
+        description: "旗舰级健康监测，全天候陪伴运动与生活场景。",
+        quantity: 8,
+        probability: "6.4%",
+        tier: "TIER_1",
+        price: 1999
+    },
+    {
+        name: "降噪蓝牙耳机",
+        description: "空间音频体验，通勤和办公都更专注。",
+        quantity: 18,
+        probability: "14.6%",
+        tier: "TIER_2",
+        price: 899
+    },
+    {
+        name: "商城无门槛券",
+        description: "即领即用，覆盖平台多个热门商品类目。",
+        quantity: 40,
+        probability: "32.5%",
+        tier: "TIER_3",
+        price: 100
+    },
+    {
+        name: "隐藏彩蛋礼盒",
+        description: "随机惊喜礼品，含限定周边与品牌联名单品。",
+        quantity: 6,
+        probability: "4.8%",
+        tier: "TIER_SPECIAL",
+        price: 2999
+    }
+];
+
+const DEFAULT_WINNERS = [
+    "林*然",
+    "陈*宇",
+    "赵*菲",
+    "李*洋",
+    "周*宁",
+    "吴*涵"
+];
+
 const STORAGE_KEYS = {
     activities: "admin-center-activities",
     prizes: "admin-center-prizes",
@@ -35,9 +79,20 @@ async function initializeAdminCenter() {
     const state = {
         session,
         activities: sanitizedActivities,
+        selectedActivityId: sanitizedActivities[0]?.id ? String(sanitizedActivities[0].id) : "",
+        activitySubview: "manage",
         activityDraft: {
             users: [],
             prizes: []
+        },
+        eventView: {
+            remainingDraws: 3,
+            inviteCount: 12,
+            participantBoost: 0,
+            countdownEndTime: Date.now() + 1000 * 60 * 60 * 36,
+            winnerFeed: createDefaultWinnerFeed(),
+            spotlightIndex: 0,
+            countdownTimer: 0
         },
         prizes: [],
         prizeLoading: false,
@@ -51,11 +106,14 @@ async function initializeAdminCenter() {
     cacheElements(state);
     bindSidebarInteractions(state);
     bindModuleSwitching(state);
+    bindActivitySubView(state);
     bindActivityForm(state);
+    bindActivityDetailInteractions(state);
     bindPrizeForm(state);
     bindMemberForm(state);
     bindMemberFilter(state);
     bindLogout(state);
+    startEventCountdown(state);
     renderAll(state);
     await loadPrizes(state);
     await loadMembers(state);
@@ -94,6 +152,8 @@ function cacheElements(state) {
         memberListCount: document.getElementById("memberListCount"),
         memberIdentityFilter: document.getElementById("memberIdentityFilter"),
         activityList: document.getElementById("activityList"),
+        activitySubviewLinks: Array.from(document.querySelectorAll("[data-activity-subview]")),
+        activitySubviewPanels: Array.from(document.querySelectorAll("[data-activity-subview-panel]")),
         prizeList: document.getElementById("prizeList"),
         memberTableBody: document.getElementById("memberTableBody"),
         activityForm: document.getElementById("activityForm"),
@@ -117,6 +177,21 @@ function cacheElements(state) {
         prizeFileName: document.getElementById("prizeFileName"),
         prizeFileInlineTip: document.getElementById("prizeFileInlineTip"),
         memberStatusAlert: document.getElementById("memberStatusAlert"),
+        activityDetailName: document.getElementById("activityDetailName"),
+        activityDetailDescription: document.getElementById("activityDetailDescription"),
+        eventParticipantCount: document.getElementById("eventParticipantCount"),
+        eventRemainingDraws: document.getElementById("eventRemainingDraws"),
+        eventCountdown: document.getElementById("eventCountdown"),
+        eventDrawButton: document.getElementById("eventDrawButton"),
+        eventDrawStatus: document.getElementById("eventDrawStatus"),
+        eventInviteCount: document.getElementById("eventInviteCount"),
+        eventPrizeGrid: document.getElementById("eventPrizeGrid"),
+        eventPrizeSpotlightImage: document.getElementById("eventPrizeSpotlightImage"),
+        eventPrizeSpotlightName: document.getElementById("eventPrizeSpotlightName"),
+        eventPrizeSpotlightMeta: document.getElementById("eventPrizeSpotlightMeta"),
+        eventPrizeSpotlightDesc: document.getElementById("eventPrizeSpotlightDesc"),
+        eventWinnerTicker: document.getElementById("eventWinnerTicker"),
+        eventWheel: document.getElementById("eventWheel"),
         mobileNavTrigger: document.getElementById("mobileNavTrigger"),
         adminSidebar: document.getElementById("adminSidebar"),
         logoutButton: document.getElementById("logoutButton"),
@@ -392,6 +467,7 @@ function bindActivityForm(state) {
                 createdAt: new Date().toISOString(),
                 status: "已创建"
             });
+            state.selectedActivityId = String(createdActivityId);
             persistState(STORAGE_KEYS.activities, state.activities);
             form.reset();
             state.activityDraft = {
@@ -400,6 +476,7 @@ function bindActivityForm(state) {
             };
             renderActivityDraft(state);
             renderActivities(state);
+            renderActivityDetail(state);
             renderMetrics(state);
             showInlineStatus(state.elements.activityStatusAlert, "success", `活动创建成功，活动 ID：${createdActivityId}。`);
         } catch (error) {
@@ -683,8 +760,92 @@ function bindLogout(state) {
     });
 }
 
+function bindActivityDetailInteractions(state) {
+    state.elements.activityList?.addEventListener("click", (event) => {
+        const item = event.target.closest(".stack-list-item[data-activity-id]");
+        if (!item) {
+            return;
+        }
+        const nextId = String(item.dataset.activityId || "").trim();
+        if (!nextId || nextId === state.selectedActivityId) {
+            return;
+        }
+        state.selectedActivityId = nextId;
+        state.eventView.spotlightIndex = 0;
+        renderActivities(state);
+        renderActivityDetail(state);
+    });
+
+    state.elements.eventPrizeGrid?.addEventListener("click", (event) => {
+        const card = event.target.closest("button[data-prize-index]");
+        if (!card) {
+            return;
+        }
+        const nextIndex = Number(card.dataset.prizeIndex || 0);
+        state.eventView.spotlightIndex = Number.isInteger(nextIndex) && nextIndex >= 0 ? nextIndex : 0;
+        renderActivityDetail(state);
+    });
+
+    state.elements.eventDrawButton?.addEventListener("click", async () => {
+        const selectedActivity = getSelectedActivity(state);
+        if (!selectedActivity) {
+            state.elements.eventDrawStatus.textContent = "请先创建或选择一个活动，再进行抽奖。";
+            return;
+        }
+
+        if (state.eventView.remainingDraws <= 0) {
+            state.elements.eventDrawStatus.textContent = "今日抽奖次数已用完，邀请好友可解锁额外机会。";
+            return;
+        }
+
+        const prizePool = resolveActivityPrizeItems(state, selectedActivity);
+        if (!prizePool.length) {
+            state.elements.eventDrawStatus.textContent = "当前活动暂无可抽取奖品，请先配置活动奖品。";
+            return;
+        }
+
+        const drawButton = state.elements.eventDrawButton;
+        const wheel = state.elements.eventWheel;
+        setButtonBusy(drawButton, true);
+        wheel?.classList.add("is-spinning");
+
+        await sleep(1100);
+
+        const winnerName = resolveRandomWinnerName(state);
+        const drawResult = prizePool[Math.floor(Math.random() * prizePool.length)];
+        state.eventView.remainingDraws = Math.max(0, state.eventView.remainingDraws - 1);
+        state.eventView.participantBoost += Math.floor(Math.random() * 3) + 1;
+        state.eventView.inviteCount += 1;
+        state.eventView.spotlightIndex = drawResult.index;
+        state.eventView.winnerFeed.unshift({
+            winner: winnerName,
+            reward: drawResult.name,
+            time: new Intl.DateTimeFormat("zh-CN", {
+                hour: "2-digit",
+                minute: "2-digit"
+            }).format(new Date())
+        });
+        state.eventView.winnerFeed = state.eventView.winnerFeed.slice(0, 8);
+
+        wheel?.classList.remove("is-spinning");
+        setButtonBusy(drawButton, false);
+        state.elements.eventDrawStatus.textContent = `${winnerName} 抽中了 ${drawResult.name}，剩余 ${state.eventView.remainingDraws} 次机会。`;
+        renderActivityDetail(state);
+    });
+}
+
+function startEventCountdown(state) {
+    if (state.eventView.countdownTimer) {
+        window.clearInterval(state.eventView.countdownTimer);
+    }
+    state.eventView.countdownTimer = window.setInterval(() => {
+        updateEventCountdown(state);
+    }, 1000);
+}
+
 function renderAll(state) {
     renderActivities(state);
+    renderActivityDetail(state);
     renderPrizes(state);
     renderMembers(state);
     renderMetrics(state);
@@ -696,8 +857,15 @@ function renderActivities(state) {
         return;
     }
 
+    if (state.selectedActivityId && !state.activities.some((activity) => String(activity.id || "") === state.selectedActivityId)) {
+        state.selectedActivityId = "";
+    }
+    if (!state.selectedActivityId && state.activities.length) {
+        state.selectedActivityId = String(state.activities[0].id || "");
+    }
+
     container.innerHTML = state.activities.map((activity) => `
-        <article class="stack-list-item">
+        <article class="stack-list-item ${String(activity.id || "") === state.selectedActivityId ? "is-selected" : ""}" data-activity-id="${escapeHtml(String(activity.id || ""))}">
             <div class="list-item-top">
                 <div>
                     <h5 class="list-item-title">${escapeHtml(activity.name || activity.title || "未命名活动")}</h5>
@@ -717,6 +885,114 @@ function renderActivities(state) {
     `).join("");
 
     state.elements.activityListCount.textContent = `${state.activities.length} 个活动`;
+}
+
+function renderActivityDetail(state) {
+    if (!state.elements.activityDetailName) {
+        return;
+    }
+
+    const selectedActivity = getSelectedActivity(state);
+    const participantCount = resolveParticipantCount(state, selectedActivity);
+    const prizeItems = resolveActivityPrizeItems(state, selectedActivity);
+
+    state.elements.activityDetailName.textContent = selectedActivity?.name || "请先创建活动";
+    state.elements.activityDetailDescription.textContent = selectedActivity?.description || "活动说明会在这里显示。你可以在左侧活动列表切换不同活动，查看详细奖品与中奖动态。";
+    state.elements.eventParticipantCount.textContent = String(participantCount);
+    state.elements.eventRemainingDraws.textContent = String(Math.max(0, state.eventView.remainingDraws));
+    state.elements.eventInviteCount.textContent = String(state.eventView.inviteCount);
+
+    renderEventPrizeCards(state, prizeItems);
+    renderWinnerTicker(state);
+    updateEventCountdown(state);
+}
+
+function renderEventPrizeCards(state, prizeItems) {
+    if (!state.elements.eventPrizeGrid) {
+        return;
+    }
+
+    if (!prizeItems.length) {
+        state.elements.eventPrizeGrid.innerHTML = '<article class="event-prize-card empty"><p>暂无奖品信息，请先配置活动奖品。</p></article>';
+        updatePrizeSpotlight(state, null);
+        return;
+    }
+
+    const maxIndex = prizeItems.length - 1;
+    if (state.eventView.spotlightIndex > maxIndex) {
+        state.eventView.spotlightIndex = 0;
+    }
+
+    state.elements.eventPrizeGrid.innerHTML = prizeItems.map((prize, index) => `
+        <button class="event-prize-card ${index === state.eventView.spotlightIndex ? "is-active" : ""}" data-prize-index="${index}" type="button">
+            <span class="event-prize-card-badge">${escapeHtml(resolvePrizeTierLabel(prize.tier))}</span>
+            <strong>${escapeHtml(prize.name)}</strong>
+            <p>${escapeHtml(prize.description)}</p>
+            <div class="event-prize-card-meta">
+                <span>库存 ${prize.quantity}</span>
+                <span>概率 ${prize.probability}</span>
+            </div>
+        </button>
+    `).join("");
+
+    updatePrizeSpotlight(state, prizeItems[state.eventView.spotlightIndex] || prizeItems[0]);
+}
+
+function updatePrizeSpotlight(state, prize) {
+    if (!state.elements.eventPrizeSpotlightName || !state.elements.eventPrizeSpotlightImage) {
+        return;
+    }
+
+    if (!prize) {
+        state.elements.eventPrizeSpotlightName.textContent = "奖品详情";
+        state.elements.eventPrizeSpotlightMeta.textContent = "库存 0 · 概率 0%";
+        state.elements.eventPrizeSpotlightDesc.textContent = "点击左侧奖品卡片查看详细说明。";
+        state.elements.eventPrizeSpotlightImage.src = createPrizePlaceholderDataUri("暂无奖品", 0);
+        state.elements.eventPrizeSpotlightImage.alt = "暂无奖品";
+        return;
+    }
+
+    state.elements.eventPrizeSpotlightName.textContent = prize.name;
+    state.elements.eventPrizeSpotlightMeta.textContent = `库存 ${prize.quantity} · 概率 ${prize.probability} · 估值 ${formatPrice(prize.price)}`;
+    state.elements.eventPrizeSpotlightDesc.textContent = prize.description;
+    state.elements.eventPrizeSpotlightImage.src = prize.imageUrl || createPrizePlaceholderDataUri(prize.name, prize.index);
+    state.elements.eventPrizeSpotlightImage.alt = prize.name;
+}
+
+function renderWinnerTicker(state) {
+    if (!state.elements.eventWinnerTicker) {
+        return;
+    }
+
+    const winners = state.eventView.winnerFeed;
+    const shouldAnimate = winners.length >= 4;
+    const renderList = shouldAnimate ? winners.concat(winners) : winners;
+
+    state.elements.eventWinnerTicker.classList.toggle("is-animated", shouldAnimate);
+    state.elements.eventWinnerTicker.innerHTML = renderList.map((winner) => `
+        <li>
+            <span>${escapeHtml(winner.winner)}</span>
+            <strong>${escapeHtml(winner.reward)}</strong>
+            <time>${escapeHtml(winner.time)}</time>
+        </li>
+    `).join("");
+}
+
+function updateEventCountdown(state) {
+    if (!state.elements.eventCountdown) {
+        return;
+    }
+
+    const remaining = state.eventView.countdownEndTime - Date.now();
+    if (remaining <= 0) {
+        state.elements.eventCountdown.textContent = "00:00:00";
+        return;
+    }
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+    state.elements.eventCountdown.textContent = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function renderPrizes(state) {
@@ -821,6 +1097,7 @@ async function loadMembers(state) {
         state.memberLoading = false;
         syncActivityComposeOptions(state);
         renderMembers(state);
+        renderActivityDetail(state);
         renderMetrics(state);
     } catch (error) {
         state.members = [];
@@ -829,6 +1106,7 @@ async function loadMembers(state) {
         syncActivityComposeOptions(state);
         showInlineStatus(state.elements.memberListAlert, "error", state.memberLoadError);
         renderMembers(state);
+        renderActivityDetail(state);
         renderMetrics(state);
     }
 }
@@ -846,6 +1124,7 @@ async function loadPrizes(state) {
         state.prizeLoading = false;
         syncActivityComposeOptions(state);
         renderPrizes(state);
+        renderActivityDetail(state);
         renderMetrics(state);
     } catch (error) {
         state.prizes = [];
@@ -854,6 +1133,7 @@ async function loadPrizes(state) {
         syncActivityComposeOptions(state);
         showInlineStatus(state.elements.prizeListAlert, "error", state.prizeLoadError);
         renderPrizes(state);
+        renderActivityDetail(state);
         renderMetrics(state);
     }
 }
@@ -1068,6 +1348,88 @@ function resolvePrizeTierLabel(value) {
     return PRIZE_TIER_LABELS[raw] || raw;
 }
 
+function getSelectedActivity(state) {
+    if (!state.selectedActivityId) {
+        return null;
+    }
+    return state.activities.find((activity) => String(activity.id || "") === state.selectedActivityId) || null;
+}
+
+function resolveParticipantCount(state, selectedActivity) {
+    const baseline = 1000 + state.members.length * 6;
+    const participantSize = Array.isArray(selectedActivity?.activityUserList) ? selectedActivity.activityUserList.length : 0;
+    return baseline + participantSize * 12 + state.eventView.participantBoost;
+}
+
+function resolveActivityPrizeItems(state, selectedActivity) {
+    const activityPrizeList = Array.isArray(selectedActivity?.activityPrizeList) ? selectedActivity.activityPrizeList : [];
+    const mapped = activityPrizeList.map((item, index) => {
+        const matchedPrize = state.prizes.find((prize) => Number(prize.id) === Number(item.prizeId));
+        return {
+            index,
+            name: matchedPrize?.name || `奖品 ${index + 1}`,
+            description: matchedPrize?.description || "暂无奖品描述",
+            quantity: Number(item.prizeAmount || 0),
+            tier: item.prizeTiers || "TIER_3",
+            price: Number(matchedPrize?.price || 0),
+            imageUrl: matchedPrize?.imageUrl || ""
+        };
+    }).filter((item) => item.quantity > 0);
+
+    if (!mapped.length) {
+        return DEFAULT_EVENT_PRIZES.map((prize, index) => ({
+            index,
+            name: prize.name,
+            description: prize.description,
+            quantity: prize.quantity,
+            probability: prize.probability,
+            tier: prize.tier,
+            price: prize.price,
+            imageUrl: ""
+        }));
+    }
+
+    const totalQuantity = mapped.reduce((sum, item) => sum + item.quantity, 0);
+    return mapped.map((item) => ({
+        ...item,
+        probability: totalQuantity > 0 ? `${((item.quantity / totalQuantity) * 100).toFixed(1)}%` : "0%"
+    }));
+}
+
+function createDefaultWinnerFeed() {
+    return DEFAULT_WINNERS.map((winner, index) => ({
+        winner,
+        reward: DEFAULT_EVENT_PRIZES[index % DEFAULT_EVENT_PRIZES.length].name,
+        time: `${String(9 + index).padStart(2, "0")}:${index % 2 === 0 ? "15" : "45"}`
+    }));
+}
+
+function resolveRandomWinnerName(state) {
+    const normalMembers = state.members.filter((member) => member.identity === "NORMAL");
+    if (normalMembers.length) {
+        const target = normalMembers[Math.floor(Math.random() * normalMembers.length)];
+        const baseName = String(target.userName || "用户");
+        if (baseName.length <= 1) {
+            return `${baseName}*`;
+        }
+        return `${baseName.slice(0, 1)}*${baseName.slice(-1)}`;
+    }
+    return DEFAULT_WINNERS[Math.floor(Math.random() * DEFAULT_WINNERS.length)];
+}
+
+function createPrizePlaceholderDataUri(label, index) {
+    const safeLabel = String(label || "Prize").slice(0, 18);
+    const hue = 180 + (Number(index || 0) % 5) * 14;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop stop-color='hsl(${hue},62%,32%)'/><stop offset='1' stop-color='hsl(${hue + 18},70%,24%)'/></linearGradient></defs><rect width='640' height='420' rx='32' fill='url(#g)'/><circle cx='530' cy='88' r='100' fill='rgba(139,224,78,0.24)'/><circle cx='120' cy='356' r='126' fill='rgba(255,255,255,0.08)'/><text x='48' y='226' fill='white' font-size='44' font-family='Chakra Petch, Arial, sans-serif' font-weight='700'>${safeLabel}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+}
+
 function removeMockActivities(activities) {
     if (!Array.isArray(activities)) {
         return [];
@@ -1077,4 +1439,33 @@ function removeMockActivities(activities) {
         const activityId = String(activity?.id || "");
         return !activityId.startsWith("ACT-20260310-");
     });
+}
+
+function bindActivitySubView(state) {
+    if (!state.elements.activitySubviewLinks.length || !state.elements.activitySubviewPanels.length) {
+        return;
+    }
+
+    const setActivitySubview = (viewId) => {
+        const nextView = viewId === "detail" ? "detail" : "manage";
+        state.activitySubview = nextView;
+
+        state.elements.activitySubviewLinks.forEach((link) => {
+            const isActive = link.dataset.activitySubview === nextView;
+            link.classList.toggle("is-active", isActive);
+            link.setAttribute("aria-selected", String(isActive));
+        });
+
+        state.elements.activitySubviewPanels.forEach((panel) => {
+            panel.classList.toggle("is-active", panel.dataset.activitySubviewPanel === nextView);
+        });
+    };
+
+    state.elements.activitySubviewLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+            setActivitySubview(link.dataset.activitySubview);
+        });
+    });
+
+    setActivitySubview(state.activitySubview);
 }

@@ -1,24 +1,25 @@
 :root {
-    --background: #ffffff;
-    --foreground: #111827;
-    --muted: #6b7280;
-    --secondary: #334155;
-    --icon: #64748b;
-    --border: rgba(148, 163, 184, 0.35);
-    --border-strong: rgba(148, 163, 184, 0.55);
-    --primary: #4c57c5;
-    --primary-foreground: #f8fafc;
-    --focus-ring: rgba(76, 87, 197, 0.12);
-    --focus-border: rgba(76, 87, 197, 0.55);
+    --background: #fffeff;
+    --foreground: #112f33;
+    --muted: #5b7478;
+    --secondary: #2f4e52;
+    --icon: #5f7c80;
+    --border: rgba(18, 67, 71, 0.24);
+    --border-strong: rgba(18, 67, 71, 0.38);
+    --primary: #1f6f73;
+    --primary-foreground: #fffeff;
+    --focus-ring: rgba(31, 111, 115, 0.12);
+    --focus-border: rgba(31, 111, 115, 0.48);
+    --accent: #9ce453;
     --error: #dc2626;
     --error-background: rgba(220, 38, 38, 0.1);
     --error-border: rgba(220, 38, 38, 0.24);
     --success: #166534;
     --success-background: rgba(22, 101, 52, 0.1);
     --success-border: rgba(22, 101, 52, 0.18);
-    --hero-start: #9aa0a7;
-    --hero-mid: #707783;
-    --hero-end: #565d68;
+    --hero-start: #1f6f73;
+    --hero-mid: #15595e;
+    --hero-end: #0f4b50;
     --purple-character: #6c3ff5;
     --black-character: #2d2d2d;
     --orange-character: #ff9b6b;
@@ -2044,6 +2045,51 @@ body:is([data-page="signup"], [data-page="forgot-password"]) #characterScene.sce
 
 body:is([data-page="signup"], [data-page="forgot-password"]) #characterScene.scene-peeking .black-character .login-face {
     transform: translate(2px, -3px);
+}
+
+/* Unified SaaS identity overrides */
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-page-hero {
+    background:
+        radial-gradient(circle at 88% 12%, rgba(156, 228, 83, 0.14) 0, transparent 35%),
+        radial-gradient(circle at 10% 88%, rgba(255, 254, 255, 0.08) 0, transparent 28%),
+        linear-gradient(152deg, #1f6f73 0%, #15595e 52%, #0f4b50 100%);
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-panel-header h1 {
+    font-family: "Chakra Petch", "Manrope", sans-serif;
+    letter-spacing: -0.02em;
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-page-brand,
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-brand-mobile {
+    color: #fffeff;
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .brand-icon svg {
+    stroke: #9ce453;
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .field-hint,
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-signup {
+    color: #5b7478;
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-submit-button .button-hover {
+    background: linear-gradient(135deg, #9ce453, #bbed78);
+    color: #12383c;
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-send-code,
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .method-chip.active {
+    color: #12383c;
+    border-color: rgba(156, 228, 83, 0.52);
+    background: linear-gradient(135deg, rgba(156, 228, 83, 0.92), rgba(187, 237, 120, 0.9));
+    box-shadow: 0 10px 24px rgba(156, 228, 83, 0.26);
+}
+
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-signup a,
+body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-forgot {
+    color: #1f6f73;
 }
 
 @keyframes blink {

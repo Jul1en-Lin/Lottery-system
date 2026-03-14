@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/auth.css">
     <link rel="stylesheet" href="/css/admin-center.css">
 </head>
@@ -29,7 +30,7 @@
                             <circle cx="12" cy="12" r="1.2"></circle>
                         </svg>
                     </span>
-                    <span class="admin-brand-copy">CareerCompass</span>
+                    <span class="admin-brand-copy">LuckyFlow</span>
                 </a>
 
                 <nav class="admin-nav" aria-label="管理员导航">
@@ -133,87 +134,210 @@
                 </div>
                 <p>左侧列表展示运营状态，右侧表单用于快速创建新活动。</p>
             </div>
-            <div class="module-grid two-column">
-                <article class="admin-card list-card">
-                    <div class="card-header-row">
-                        <div>
-                            <h4>活动列表</h4>
-                            <p>当前为前端本地持久化数据，刷新后仍会保留。</p>
-                        </div>
-                        <span class="card-count-pill" id="activityListCount">0 个活动</span>
-                    </div>
-                    <div class="stack-list" id="activityList"></div>
-                </article>
-
-                <article class="admin-card form-card" id="activityCreateCard">
-                    <div class="card-header-row">
-                        <div>
-                            <h4>新建抽奖活动</h4>
-                            <p>按后端活动创建接口配置基础信息、参与人和奖品清单。</p>
-                        </div>
-                    </div>
-                    <form class="admin-form" id="activityForm" novalidate>
-                        <label class="admin-field">
-                            <span>活动名称</span>
-                            <input id="activityName" name="name" type="text" placeholder="例如：春季会员大抽奖" required>
-                        </label>
-                        <label class="admin-field">
-                            <span>活动说明</span>
-                            <textarea id="activityDescription" name="description" rows="4" placeholder="补充活动规则、适用人群、限制条件等" required></textarea>
-                        </label>
-
-                        <section class="compose-shell" aria-label="活动参与用户配置">
-                            <div class="compose-head-row">
-                                <h5>参与用户</h5>
-                                <span class="card-count-pill" id="activityUserSelectedCount">0 人</span>
-                            </div>
-                            <div class="form-grid activity-compose-user-grid">
-                                <label class="admin-field">
-                                    <span>选择用户</span>
-                                    <select id="activityUserSelect" name="activityUserSelect">
-                                        <option value="">请先加载人员列表</option>
-                                    </select>
-                                </label>
-                                <button class="secondary-action-button" id="addActivityUserButton" type="button">添加参与人</button>
-                            </div>
-                            <div class="compose-list" id="activityUserSelected" aria-live="polite"></div>
-                        </section>
-
-                        <section class="compose-shell" aria-label="活动奖品配置">
-                            <div class="compose-head-row">
-                                <h5>活动奖品</h5>
-                                <span class="card-count-pill" id="activityPrizeSelectedCount">0 项</span>
-                            </div>
-                            <div class="form-grid activity-compose-prize-grid">
-                                <label class="admin-field">
-                                    <span>选择奖品</span>
-                                    <select id="activityPrizeSelect" name="activityPrizeSelect">
-                                        <option value="">请先加载奖品列表</option>
-                                    </select>
-                                </label>
-                                <label class="admin-field">
-                                    <span>奖品数量</span>
-                                    <input id="activityPrizeAmount" name="activityPrizeAmount" type="number" min="1" step="1" value="1" required>
-                                </label>
-                                <label class="admin-field">
-                                    <span>奖品档位</span>
-                                    <select id="activityPrizeTier" name="activityPrizeTier">
-                                        <option value="TIER_SPECIAL">特等奖</option>
-                                        <option value="TIER_1">一等奖</option>
-                                        <option value="TIER_2">二等奖</option>
-                                        <option value="TIER_3">三等奖</option>
-                                    </select>
-                                </label>
-                            </div>
-                            <button class="secondary-action-button" id="addActivityPrizeButton" type="button">添加奖品项</button>
-                            <div class="compose-list" id="activityPrizeSelected" aria-live="polite"></div>
-                        </section>
-
-                        <div class="inline-status" id="activityStatusAlert" role="alert" aria-live="polite"></div>
-                        <button class="primary-action-button" id="activitySubmit" type="submit">创建活动</button>
-                    </form>
-                </article>
+            <div class="activity-subnav" role="tablist" aria-label="活动管理二级导航">
+                <button class="activity-subnav-link is-active" type="button" data-activity-subview="manage" aria-selected="true">活动配置</button>
+                <button class="activity-subnav-link" type="button" data-activity-subview="detail" aria-selected="false">活动详情页</button>
             </div>
+
+            <section class="activity-subview is-active" data-activity-subview-panel="manage">
+                <div class="module-grid two-column">
+                    <article class="admin-card list-card">
+                        <div class="card-header-row">
+                            <div>
+                                <h4>活动列表</h4>
+                                <p>当前为前端本地持久化数据，刷新后仍会保留。</p>
+                            </div>
+                            <span class="card-count-pill" id="activityListCount">0 个活动</span>
+                        </div>
+                        <div class="stack-list" id="activityList"></div>
+                    </article>
+
+                    <article class="admin-card form-card" id="activityCreateCard">
+                        <div class="card-header-row">
+                            <div>
+                                <h4>新建抽奖活动</h4>
+                                <p>按后端活动创建接口配置基础信息、参与人和奖品清单。</p>
+                            </div>
+                        </div>
+                        <form class="admin-form" id="activityForm" novalidate>
+                            <label class="admin-field">
+                                <span>活动名称</span>
+                                <input id="activityName" name="name" type="text" placeholder="例如：春季会员大抽奖" required>
+                            </label>
+                            <label class="admin-field">
+                                <span>活动说明</span>
+                                <textarea id="activityDescription" name="description" rows="4" placeholder="补充活动规则、适用人群、限制条件等" required></textarea>
+                            </label>
+
+                            <section class="compose-shell" aria-label="活动参与用户配置">
+                                <div class="compose-head-row">
+                                    <h5>参与用户</h5>
+                                    <span class="card-count-pill" id="activityUserSelectedCount">0 人</span>
+                                </div>
+                                <div class="form-grid activity-compose-user-grid">
+                                    <label class="admin-field">
+                                        <span>选择用户</span>
+                                        <select id="activityUserSelect" name="activityUserSelect">
+                                            <option value="">请先加载人员列表</option>
+                                        </select>
+                                    </label>
+                                    <button class="secondary-action-button" id="addActivityUserButton" type="button">添加参与人</button>
+                                </div>
+                                <div class="compose-list" id="activityUserSelected" aria-live="polite"></div>
+                            </section>
+
+                            <section class="compose-shell" aria-label="活动奖品配置">
+                                <div class="compose-head-row">
+                                    <h5>活动奖品</h5>
+                                    <span class="card-count-pill" id="activityPrizeSelectedCount">0 项</span>
+                                </div>
+                                <div class="form-grid activity-compose-prize-grid">
+                                    <label class="admin-field">
+                                        <span>选择奖品</span>
+                                        <select id="activityPrizeSelect" name="activityPrizeSelect">
+                                            <option value="">请先加载奖品列表</option>
+                                        </select>
+                                    </label>
+                                    <label class="admin-field">
+                                        <span>奖品数量</span>
+                                        <input id="activityPrizeAmount" name="activityPrizeAmount" type="number" min="1" step="1" value="1" required>
+                                    </label>
+                                    <label class="admin-field">
+                                        <span>奖品档位</span>
+                                        <select id="activityPrizeTier" name="activityPrizeTier">
+                                            <option value="TIER_SPECIAL">特等奖</option>
+                                            <option value="TIER_1">一等奖</option>
+                                            <option value="TIER_2">二等奖</option>
+                                            <option value="TIER_3">三等奖</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <button class="secondary-action-button" id="addActivityPrizeButton" type="button">添加奖品项</button>
+                                <div class="compose-list" id="activityPrizeSelected" aria-live="polite"></div>
+                            </section>
+
+                            <div class="inline-status" id="activityStatusAlert" role="alert" aria-live="polite"></div>
+                            <button class="primary-action-button" id="activitySubmit" type="submit">创建活动</button>
+                        </form>
+                    </article>
+                </div>
+            </section>
+
+            <section class="activity-subview" data-activity-subview-panel="detail">
+                    <div class="event-experience-shell" id="activityDetailModule" aria-label="活动详情展示区">
+                    <header class="event-nav-shell">
+                        <a class="event-brand" href="#activities" aria-label="活动详情首页">
+                            <span class="event-brand-mark" aria-hidden="true"></span>
+                            <span>LuckyFlow</span>
+                        </a>
+                        <nav class="event-menu" aria-label="活动详情导航">
+                            <a href="#activities">Event</a>
+                            <a href="#activities">Prizes</a>
+                            <a href="#activities">Winners</a>
+                            <a href="#activities">Rules</a>
+                        </nav>
+                        <button class="event-nav-cta" type="button">Book an Experience</button>
+                    </header>
+
+                    <section class="event-hero-shell">
+                        <div class="event-hero-copy">
+                            <p class="event-hero-eyebrow">Trusted Lucky Draw Campaign</p>
+                            <h4 id="activityDetailName">年度幸运抽奖活动</h4>
+                            <p id="activityDetailDescription">以活动列表中选中的活动为准，动态展示活动亮点、参与范围和奖品策略。</p>
+                            <div class="event-hero-actions">
+                                <button class="event-solid-action" type="button">Call for Support</button>
+                                <button class="event-outline-action" type="button">View Prize Catalog</button>
+                            </div>
+                            <div class="event-metrics-grid" role="list" aria-label="活动关键指标">
+                                <article class="event-metric-card" role="listitem">
+                                    <span>参与人数</span>
+                                    <strong id="eventParticipantCount">0</strong>
+                                </article>
+                                <article class="event-metric-card" role="listitem">
+                                    <span>剩余抽奖次数</span>
+                                    <strong id="eventRemainingDraws">0</strong>
+                                </article>
+                                <article class="event-metric-card" role="listitem">
+                                    <span>活动倒计时</span>
+                                    <strong id="eventCountdown">00:00:00</strong>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="event-lucky-module">
+                            <div class="event-lucky-wheel-wrap">
+                                <div class="event-lucky-wheel" id="eventWheel" aria-hidden="true">
+                                    <span class="wheel-dot"></span>
+                                    <span class="wheel-center">LUCK</span>
+                                </div>
+                            </div>
+                            <button class="event-draw-button" id="eventDrawButton" type="button">立即抽奖</button>
+                            <p class="event-draw-status" id="eventDrawStatus">点击按钮模拟开奖，结果会同步到下方中奖滚动列表。</p>
+                            <p class="event-invite-note">已邀请好友 <strong id="eventInviteCount">0</strong> 人</p>
+                        </div>
+                    </section>
+
+                    <section class="event-prize-layout">
+                        <div class="event-prize-grid-wrap">
+                            <div class="event-section-heading">
+                                <h5>Prize Showcase</h5>
+                                <p>高保真奖品卡片展示：数量、概率、档位与价值信息。</p>
+                            </div>
+                            <div class="event-prize-grid" id="eventPrizeGrid"></div>
+                        </div>
+
+                        <aside class="event-prize-spotlight" aria-label="奖品详情">
+                            <div class="event-prize-spotlight-media">
+                                <img id="eventPrizeSpotlightImage" src="" alt="奖品详情图">
+                            </div>
+                            <div class="event-prize-spotlight-copy">
+                                <h6 id="eventPrizeSpotlightName">奖品详情</h6>
+                                <p class="event-prize-spotlight-meta" id="eventPrizeSpotlightMeta">库存 0 · 概率 0%</p>
+                                <p id="eventPrizeSpotlightDesc">点击左侧奖品卡片查看详细说明。</p>
+                            </div>
+                        </aside>
+                    </section>
+
+                    <section class="event-bottom-grid">
+                        <article class="event-bottom-card">
+                            <div class="event-section-heading compact">
+                                <h5>Recent Winners</h5>
+                                <p>滚动播报最新中奖记录</p>
+                            </div>
+                            <div class="winner-ticker-window">
+                                <ul class="winner-ticker-track" id="eventWinnerTicker"></ul>
+                            </div>
+                        </article>
+
+                        <article class="event-bottom-card">
+                            <div class="event-section-heading compact">
+                                <h5>Activity Rules</h5>
+                                <p>参与方式与限制说明</p>
+                            </div>
+                            <ol class="event-rule-list">
+                                <li>登录后进入活动页，完成实名信息校验即可参与。</li>
+                                <li>每位用户默认获得 3 次抽奖机会，邀请好友可解锁额外机会。</li>
+                                <li>中奖后请在 72 小时内完成领奖，逾期将自动释放名额。</li>
+                                <li>如出现异常流量，系统会自动风控并暂时冻结抽奖资格。</li>
+                            </ol>
+                        </article>
+
+                        <article class="event-bottom-card share-card">
+                            <div class="event-section-heading compact">
+                                <h5>Share & Invite</h5>
+                                <p>社交分享与拉新邀请</p>
+                            </div>
+                            <div class="event-share-actions">
+                                <button type="button">WeChat</button>
+                                <button type="button">Weibo</button>
+                                <button type="button">QQ</button>
+                                <button type="button">Copy Invite Link</button>
+                            </div>
+                            <p class="event-share-tip">分享成功后将自动增加活动热度与可用抽奖次数。</p>
+                        </article>
+                    </section>
+                    </div>
+            </section>
         </section>
 
         <section class="admin-panel module-section" id="prizes" data-panel="prizes">

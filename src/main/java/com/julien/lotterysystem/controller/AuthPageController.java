@@ -33,4 +33,29 @@ public class AuthPageController {
     public String adminActivityCenter() {
         return "forward:/admin-activity-center.html";
     }
+
+    @GetMapping("/homepage")
+    public String homepage() {
+        return "forward:/homepage.html";
+    }
+
+    @GetMapping("/activity-list")
+    public String activityList() {
+        return "forward:/activity-list.html";
+    }
+
+    @GetMapping("/activity-detail")
+    public String activityDetail() {
+        return "forward:/activity-detail.html";
+    }
+
+    @GetMapping("/user-center")
+    public String userCenter() {
+        return "forward:/user-center.html";
+    }
+
+    @GetMapping("/prize-record")
+    public String prizeRecord() {
+        return "forward:/prize-record.html";
+    }
 }
