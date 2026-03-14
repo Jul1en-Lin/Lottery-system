@@ -28,6 +28,6 @@ public class ActivityPrize {
     private Long prizeAmount;
     /** 奖品档位 */
     private String prizeTiers;
-    /** 状态 */
+    /** 奖品状态——初始化/已被抽取 */
     private String status;
 }

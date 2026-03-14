@@ -3,94 +3,18 @@ const PHONE_PATTERN = /^1[3-9]\d{9}$/;
 const CODE_PATTERN = /^\d{6}$/;
 const PASSWORD_PATTERN = /^[0-9A-Za-z]{6,20}$/;
 const CODE_RESEND_SECONDS = 240;
+const PRIZE_TIER_LABELS = {
+    TIER_SPECIAL: "特等奖",
+    TIER_1: "一等奖",
+    TIER_2: "二等奖",
+    TIER_3: "三等奖"
+};
 
 const STORAGE_KEYS = {
     activities: "admin-center-activities",
     prizes: "admin-center-prizes",
     members: "admin-center-members"
 };
-
-const defaultActivities = [
-    {
-        id: "ACT-20260310-01",
-        name: "春季会员大抽奖",
-        description: "面向活跃会员开放，中奖后自动发放电子券。",
-        status: "已创建",
-        createdAt: "2026-03-10T10:00:00",
-        activityUserList: [
-            {
-                userId: 1001,
-                userName: "张敏"
-            },
-            {
-                userId: 1002,
-                userName: "李响"
-            }
-        ],
-        activityPrizeList: [
-            {
-                prizeId: 1,
-                prizeAmount: 1,
-                prizeTiers: "一等奖"
-            },
-            {
-                prizeId: 2,
-                prizeAmount: 2,
-                prizeTiers: "二等奖"
-            }
-        ]
-    },
-    {
-        id: "ACT-20260310-02",
-        name: "品牌周年幸运签",
-        description: "支持签到抽奖与加码轮次配置。",
-        status: "草稿",
-        createdAt: "2026-03-10T12:30:00",
-        activityUserList: [
-            {
-                userId: 1003,
-                userName: "王晨"
-            }
-        ],
-        activityPrizeList: [
-            {
-                prizeId: 3,
-                prizeAmount: 10,
-                prizeTiers: "参与奖"
-            }
-        ]
-    }
-];
-
-const defaultPrizes = [
-    {
-        id: "PRIZE-01",
-        name: "100 元礼品卡",
-        tier: "一等奖",
-        stock: 20,
-        probability: 5,
-        delivery: "自动到账",
-        notes: "中奖后自动下发到用户账户。"
-    },
-    {
-        id: "PRIZE-02",
-        name: "品牌周边礼包",
-        tier: "二等奖",
-        stock: 60,
-        probability: 18,
-        delivery: "人工发放",
-        notes: "运营审核地址后统一邮寄。"
-    },
-    {
-        id: "PRIZE-03",
-        name: "线下咖啡券",
-        tier: "参与奖",
-        stock: 300,
-        probability: 42,
-        delivery: "线下兑换",
-        notes: "门店扫码核销，7 天内有效。"
-    }
-];
 
 document.addEventListener("DOMContentLoaded", () => {
     void initializeAdminCenter();
@@ -102,9 +26,15 @@ async function initializeAdminCenter() {
         return;
     }
 
+    const storedActivities = readStorage(STORAGE_KEYS.activities, []);
+    const sanitizedActivities = removeMockActivities(storedActivities);
+    if (sanitizedActivities.length !== storedActivities.length) {
+        persistState(STORAGE_KEYS.activities, sanitizedActivities);
+    }
+
     const state = {
         session,
-        activities: readStorage(STORAGE_KEYS.activities, defaultActivities),
+        activities: sanitizedActivities,
         activityDraft: {
             users: [],
             prizes: []
@@ -558,7 +488,7 @@ function renderActivityDraftPrizes(state) {
             <article class="compose-item">
                 <div>
                     <h6>${escapeHtml(prize.prizeName || "未命名奖品")}</h6>
-                    <p>${escapeHtml(prize.prizeTiers)} · 数量 ${escapeHtml(String(prize.prizeAmount))} · ID ${escapeHtml(String(prize.prizeId))}</p>
+                    <p>${escapeHtml(resolvePrizeTierLabel(prize.prizeTiers))} · 数量 ${escapeHtml(String(prize.prizeAmount))} · ID ${escapeHtml(String(prize.prizeId))}</p>
                 </div>
                 <button class="compose-remove" data-remove-prize-id="${escapeHtml(String(prize.prizeId))}" type="button">移除</button>
             </article>
@@ -1128,4 +1058,23 @@ function formatPrizeFileType(file) {
     }
 
     return "未知类型";
+}
+
+function resolvePrizeTierLabel(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+        return "未知档位";
+    }
+    return PRIZE_TIER_LABELS[raw] || raw;
+}
+
+function removeMockActivities(activities) {
+    if (!Array.isArray(activities)) {
+        return [];
+    }
+
+    return activities.filter((activity) => {
+        const activityId = String(activity?.id || "");
+        return !activityId.startsWith("ACT-20260310-");
+    });
 }

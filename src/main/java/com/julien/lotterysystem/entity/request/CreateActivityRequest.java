@@ -1,5 +1,6 @@
 package com.julien.lotterysystem.entity.request;
 
+import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

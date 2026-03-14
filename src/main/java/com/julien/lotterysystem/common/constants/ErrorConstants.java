@@ -19,6 +19,7 @@ public interface ErrorConstants {
     ErrorCode PRIZE_EMPTY = new ErrorCode(203,"奖品为空");
     ErrorCode USER_EMPTY = new ErrorCode(204,"用户为空");
     ErrorCode INSERT_ERROR = new ErrorCode(205,"插入数据失败");
+    ErrorCode SET_TIER_FAILED = new ErrorCode(206,"设置奖品等级失败");
 
 
 
