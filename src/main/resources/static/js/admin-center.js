@@ -13,25 +13,52 @@ const STORAGE_KEYS = {
 const defaultActivities = [
     {
         id: "ACT-20260310-01",
-        title: "春季会员大抽奖",
-        scene: "会员回馈",
-        startAt: "2026-03-12T10:00",
-        drawAt: "2026-03-18T20:00",
-        status: "预热中",
-        capacity: 2000,
-        prizePool: "春季奖池 A",
-        description: "面向活跃会员开放，中奖后自动发放电子券。"
+        name: "春季会员大抽奖",
+        description: "面向活跃会员开放，中奖后自动发放电子券。",
+        status: "已创建",
+        createdAt: "2026-03-10T10:00:00",
+        activityUserList: [
+            {
+                userId: 1001,
+                userName: "张敏"
+            },
+            {
+                userId: 1002,
+                userName: "李响"
+            }
+        ],
+        activityPrizeList: [
+            {
+                prizeId: 1,
+                prizeAmount: 1,
+                prizeTiers: "一等奖"
+            },
+            {
+                prizeId: 2,
+                prizeAmount: 2,
+                prizeTiers: "二等奖"
+            }
+        ]
     },
     {
         id: "ACT-20260310-02",
-        title: "品牌周年幸运签",
-        scene: "周年庆",
-        startAt: "2026-03-20T09:30",
-        drawAt: "2026-03-28T19:00",
+        name: "品牌周年幸运签",
+        description: "支持签到抽奖与加码轮次配置。",
         status: "草稿",
-        capacity: 5000,
-        prizePool: "周年庆奖池",
-        description: "支持签到抽奖与加码轮次配置。"
+        createdAt: "2026-03-10T12:30:00",
+        activityUserList: [
+            {
+                userId: 1003,
+                userName: "王晨"
+            }
+        ],
+        activityPrizeList: [
+            {
+                prizeId: 3,
+                prizeAmount: 10,
+                prizeTiers: "参与奖"
+            }
+        ]
     }
 ];
 
@@ -78,6 +105,10 @@ async function initializeAdminCenter() {
     const state = {
         session,
         activities: readStorage(STORAGE_KEYS.activities, defaultActivities),
+        activityDraft: {
+            users: [],
+            prizes: []
+        },
         prizes: [],
         prizeLoading: false,
         prizeLoadError: "",
@@ -136,6 +167,16 @@ function cacheElements(state) {
         prizeList: document.getElementById("prizeList"),
         memberTableBody: document.getElementById("memberTableBody"),
         activityForm: document.getElementById("activityForm"),
+        activityUserSelect: document.getElementById("activityUserSelect"),
+        activityPrizeSelect: document.getElementById("activityPrizeSelect"),
+        activityPrizeAmount: document.getElementById("activityPrizeAmount"),
+        activityPrizeTier: document.getElementById("activityPrizeTier"),
+        addActivityUserButton: document.getElementById("addActivityUserButton"),
+        addActivityPrizeButton: document.getElementById("addActivityPrizeButton"),
+        activityUserSelected: document.getElementById("activityUserSelected"),
+        activityPrizeSelected: document.getElementById("activityPrizeSelected"),
+        activityUserSelectedCount: document.getElementById("activityUserSelectedCount"),
+        activityPrizeSelectedCount: document.getElementById("activityPrizeSelectedCount"),
         prizeForm: document.getElementById("prizeForm"),
         memberForm: document.getElementById("memberForm"),
         memberSendCode: document.getElementById("memberSendCode"),
@@ -143,6 +184,8 @@ function cacheElements(state) {
         memberListAlert: document.getElementById("memberListAlert"),
         activityStatusAlert: document.getElementById("activityStatusAlert"),
         prizeStatusAlert: document.getElementById("prizeStatusAlert"),
+        prizeFileName: document.getElementById("prizeFileName"),
+        prizeFileInlineTip: document.getElementById("prizeFileInlineTip"),
         memberStatusAlert: document.getElementById("memberStatusAlert"),
         mobileNavTrigger: document.getElementById("mobileNavTrigger"),
         adminSidebar: document.getElementById("adminSidebar"),
@@ -270,53 +313,261 @@ function bindActivityForm(state) {
         return;
     }
 
-    form.addEventListener("submit", (event) => {
+    state.elements.addActivityUserButton?.addEventListener("click", () => {
+        clearInlineStatus(state.elements.activityStatusAlert);
+        const selectedUserId = Number(state.elements.activityUserSelect?.value || 0);
+        if (!selectedUserId) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请先选择参与用户。");
+            return;
+        }
+
+        const targetUser = state.members.find((member) => Number(member.id) === selectedUserId);
+        if (!targetUser) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "未找到用户信息，请刷新人员列表后重试。");
+            return;
+        }
+
+        const exists = state.activityDraft.users.some((user) => Number(user.userId) === selectedUserId);
+        if (exists) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "该用户已在参与名单中。");
+            return;
+        }
+
+        state.activityDraft.users.push({
+            userId: selectedUserId,
+            userName: targetUser.userName
+        });
+        renderActivityDraft(state);
+    });
+
+    state.elements.addActivityPrizeButton?.addEventListener("click", () => {
+        clearInlineStatus(state.elements.activityStatusAlert);
+        const selectedPrizeId = Number(state.elements.activityPrizeSelect?.value || 0);
+        const selectedTier = String(state.elements.activityPrizeTier?.value || "").trim();
+        const amount = Number(state.elements.activityPrizeAmount?.value || 0);
+
+        if (!selectedPrizeId) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请先选择奖品。");
+            return;
+        }
+        if (!selectedTier) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请选择奖品档位。");
+            return;
+        }
+        if (!Number.isInteger(amount) || amount <= 0) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "奖品数量必须是大于 0 的整数。");
+            return;
+        }
+
+        const targetPrize = state.prizes.find((prize) => Number(prize.id) === selectedPrizeId);
+        if (!targetPrize) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "未找到奖品信息，请刷新奖品列表后重试。");
+            return;
+        }
+
+        const exists = state.activityDraft.prizes.some((prize) => Number(prize.prizeId) === selectedPrizeId);
+        if (exists) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "该奖品已在清单中，可先删除后重新添加。");
+            return;
+        }
+
+        state.activityDraft.prizes.push({
+            prizeId: selectedPrizeId,
+            prizeAmount: amount,
+            prizeTiers: selectedTier,
+            prizeName: targetPrize.name
+        });
+        if (state.elements.activityPrizeAmount) {
+            state.elements.activityPrizeAmount.value = "1";
+        }
+        renderActivityDraft(state);
+    });
+
+    state.elements.activityUserSelected?.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-remove-user-id]");
+        if (!button) {
+            return;
+        }
+        const userId = Number(button.dataset.removeUserId || 0);
+        state.activityDraft.users = state.activityDraft.users.filter((item) => Number(item.userId) !== userId);
+        renderActivityDraft(state);
+    });
+
+    state.elements.activityPrizeSelected?.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-remove-prize-id]");
+        if (!button) {
+            return;
+        }
+        const prizeId = Number(button.dataset.removePrizeId || 0);
+        state.activityDraft.prizes = state.activityDraft.prizes.filter((item) => Number(item.prizeId) !== prizeId);
+        renderActivityDraft(state);
+    });
+
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
         clearInlineStatus(state.elements.activityStatusAlert);
 
         const fields = form.elements;
 
         const payload = {
-            title: fields.namedItem("title").value.trim(),
-            scene: fields.namedItem("scene").value.trim(),
-            startAt: fields.namedItem("startAt").value,
-            drawAt: fields.namedItem("drawAt").value,
-            status: fields.namedItem("status").value,
-            capacity: Number(fields.namedItem("capacity").value || 0),
-            prizePool: fields.namedItem("prizePool").value.trim(),
-            description: fields.namedItem("description").value.trim()
+            name: String(fields.namedItem("name")?.value || "").trim(),
+            description: String(fields.namedItem("description")?.value || "").trim(),
+            activityUserList: state.activityDraft.users.map((user) => ({
+                userId: Number(user.userId),
+                userName: user.userName
+            })),
+            activityPrizeList: state.activityDraft.prizes.map((prize) => ({
+                prizeId: Number(prize.prizeId),
+                prizeAmount: Number(prize.prizeAmount),
+                prizeTiers: prize.prizeTiers
+            }))
         };
 
-        if (!payload.title) {
+        if (!payload.name) {
             showInlineStatus(state.elements.activityStatusAlert, "error", "请输入活动名称。");
-            fields.namedItem("title").focus();
+            fields.namedItem("name").focus();
             return;
         }
-        if (!payload.scene) {
-            showInlineStatus(state.elements.activityStatusAlert, "error", "请输入活动场景。");
-            fields.namedItem("scene").focus();
+        if (!payload.description) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请输入活动说明。");
+            fields.namedItem("description").focus();
             return;
         }
-        if (!payload.startAt || !payload.drawAt) {
-            showInlineStatus(state.elements.activityStatusAlert, "error", "请补齐开始时间和开奖时间。");
+        if (!payload.activityUserList.length) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请至少添加 1 位参与用户。");
             return;
         }
-        if (new Date(payload.drawAt).getTime() <= new Date(payload.startAt).getTime()) {
-            showInlineStatus(state.elements.activityStatusAlert, "error", "开奖时间必须晚于开始时间。");
-            fields.namedItem("drawAt").focus();
+        if (!payload.activityPrizeList.length) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", "请至少添加 1 项奖品配置。");
             return;
         }
 
-        state.activities.unshift({
-            id: `ACT-${Date.now()}`,
-            ...payload
-        });
-        persistState(STORAGE_KEYS.activities, state.activities);
-        renderActivities(state);
-        renderMetrics(state);
-        form.reset();
-        showInlineStatus(state.elements.activityStatusAlert, "success", "活动已保存到前端工作台，后续可直接对接真实接口。");
+        setButtonBusy(document.getElementById("activitySubmit"), true);
+        try {
+            const result = await requestJson("/activity/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const createdActivityId = result?.data?.activityId || `ACT-${Date.now()}`;
+            state.activities.unshift({
+                id: createdActivityId,
+                name: payload.name,
+                description: payload.description,
+                activityUserList: payload.activityUserList,
+                activityPrizeList: payload.activityPrizeList,
+                createdAt: new Date().toISOString(),
+                status: "已创建"
+            });
+            persistState(STORAGE_KEYS.activities, state.activities);
+            form.reset();
+            state.activityDraft = {
+                users: [],
+                prizes: []
+            };
+            renderActivityDraft(state);
+            renderActivities(state);
+            renderMetrics(state);
+            showInlineStatus(state.elements.activityStatusAlert, "success", `活动创建成功，活动 ID：${createdActivityId}。`);
+        } catch (error) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", error.message || "活动创建失败，请稍后重试。");
+        } finally {
+            setButtonBusy(document.getElementById("activitySubmit"), false);
+        }
     });
+
+    syncActivityComposeOptions(state);
+    renderActivityDraft(state);
+}
+
+function syncActivityComposeOptions(state) {
+    const userSelect = state.elements.activityUserSelect;
+    const prizeSelect = state.elements.activityPrizeSelect;
+
+    if (userSelect) {
+        const memberOptions = state.members.map((member) => ({
+            id: Number(member.id),
+            userName: member.userName,
+            identity: member.identity
+        })).filter((member) => member.id > 0);
+
+        if (!memberOptions.length) {
+            userSelect.innerHTML = '<option value="">请先加载人员列表</option>';
+        } else {
+            userSelect.innerHTML = '<option value="">请选择参与用户</option>' + memberOptions.map((member) => (
+                `<option value="${member.id}">${escapeHtml(member.userName)}（${member.identity === "ADMIN" ? "管理员" : "普通用户"}）</option>`
+            )).join("");
+        }
+    }
+
+    if (prizeSelect) {
+        const prizeOptions = state.prizes.filter((prize) => Number(prize.id) > 0);
+        if (!prizeOptions.length) {
+            prizeSelect.innerHTML = '<option value="">请先加载奖品列表</option>';
+        } else {
+            prizeSelect.innerHTML = '<option value="">请选择奖品</option>' + prizeOptions.map((prize) => (
+                `<option value="${prize.id}">${escapeHtml(prize.name)}（价值 ${formatPrice(prize.price)}）</option>`
+            )).join("");
+        }
+    }
+}
+
+function renderActivityDraft(state) {
+    renderActivityDraftUsers(state);
+    renderActivityDraftPrizes(state);
+}
+
+function renderActivityDraftUsers(state) {
+    const container = state.elements.activityUserSelected;
+    if (!container) {
+        return;
+    }
+
+    if (!state.activityDraft.users.length) {
+        container.innerHTML = '<div class="compose-empty">未添加参与用户</div>';
+    } else {
+        container.innerHTML = state.activityDraft.users.map((user) => `
+            <article class="compose-item">
+                <div>
+                    <h6>${escapeHtml(user.userName)}</h6>
+                    <p>ID：${escapeHtml(String(user.userId))}</p>
+                </div>
+                <button class="compose-remove" data-remove-user-id="${escapeHtml(String(user.userId))}" type="button">移除</button>
+            </article>
+        `).join("");
+    }
+
+    if (state.elements.activityUserSelectedCount) {
+        state.elements.activityUserSelectedCount.textContent = `${state.activityDraft.users.length} 人`;
+    }
+}
+
+function renderActivityDraftPrizes(state) {
+    const container = state.elements.activityPrizeSelected;
+    if (!container) {
+        return;
+    }
+
+    if (!state.activityDraft.prizes.length) {
+        container.innerHTML = '<div class="compose-empty">未添加奖品项</div>';
+    } else {
+        container.innerHTML = state.activityDraft.prizes.map((prize) => `
+            <article class="compose-item">
+                <div>
+                    <h6>${escapeHtml(prize.prizeName || "未命名奖品")}</h6>
+                    <p>${escapeHtml(prize.prizeTiers)} · 数量 ${escapeHtml(String(prize.prizeAmount))} · ID ${escapeHtml(String(prize.prizeId))}</p>
+                </div>
+                <button class="compose-remove" data-remove-prize-id="${escapeHtml(String(prize.prizeId))}" type="button">移除</button>
+            </article>
+        `).join("");
+    }
+
+    if (state.elements.activityPrizeSelectedCount) {
+        state.elements.activityPrizeSelectedCount.textContent = `${state.activityDraft.prizes.length} 项`;
+    }
 }
 
 function bindPrizeForm(state) {
@@ -325,19 +576,24 @@ function bindPrizeForm(state) {
         return;
     }
 
-    form.addEventListener("submit", (event) => {
+    const fileInput = form.elements.namedItem("file");
+    if (fileInput) {
+        fileInput.addEventListener("change", () => {
+            renderPrizeSelectedFile(state, fileInput.files?.[0] || null);
+        });
+    }
+
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
         clearInlineStatus(state.elements.prizeStatusAlert);
 
         const fields = form.elements;
+        const selectedFile = fields.namedItem("file")?.files?.[0] || null;
 
         const payload = {
             name: fields.namedItem("name").value.trim(),
-            tier: fields.namedItem("tier").value,
-            stock: Number(fields.namedItem("stock").value || 0),
-            probability: Number(fields.namedItem("probability").value || 0),
-            delivery: fields.namedItem("delivery").value,
-            notes: fields.namedItem("notes").value.trim()
+            price: Number(fields.namedItem("price").value || 0),
+            description: fields.namedItem("description").value.trim()
         };
 
         if (!payload.name) {
@@ -345,20 +601,43 @@ function bindPrizeForm(state) {
             fields.namedItem("name").focus();
             return;
         }
-        if (payload.stock <= 0) {
-            showInlineStatus(state.elements.prizeStatusAlert, "error", "库存必须大于 0。");
-            fields.namedItem("stock").focus();
+        if (payload.price <= 0) {
+            showInlineStatus(state.elements.prizeStatusAlert, "error", "奖品价值必须大于 0。");
+            fields.namedItem("price").focus();
+            return;
+        }
+        if (!payload.description) {
+            showInlineStatus(state.elements.prizeStatusAlert, "error", "请输入奖品说明。");
+            fields.namedItem("description").focus();
+            return;
+        }
+        if (!selectedFile) {
+            showInlineStatus(state.elements.prizeStatusAlert, "error", "请上传奖品图片。");
+            fields.namedItem("file").focus();
             return;
         }
 
-        state.prizes.unshift({
-            id: `PRIZE-${Date.now()}`,
-            ...payload
-        });
-        renderPrizes(state);
-        renderMetrics(state);
-        form.reset();
-        showInlineStatus(state.elements.prizeStatusAlert, "success", "奖品已加入当前页面列表。");
+        const formData = new FormData();
+        formData.append("params", JSON.stringify(payload));
+        formData.append("file", selectedFile);
+
+        setButtonBusy(document.getElementById("prizeSubmit"), true);
+        try {
+            const result = await requestJson("/prize/create", {
+                method: "POST",
+                body: formData
+            });
+
+            await loadPrizes(state);
+            renderMetrics(state);
+            form.reset();
+            renderPrizeSelectedFile(state, null);
+            showInlineStatus(state.elements.prizeStatusAlert, "success", `奖品创建成功，奖品 ID：${result.data}。`);
+        } catch (error) {
+            showInlineStatus(state.elements.prizeStatusAlert, "error", error.message || "奖品创建失败，请稍后重试。");
+        } finally {
+            setButtonBusy(document.getElementById("prizeSubmit"), false);
+        }
     });
 }
 
@@ -491,19 +770,18 @@ function renderActivities(state) {
         <article class="stack-list-item">
             <div class="list-item-top">
                 <div>
-                    <h5 class="list-item-title">${escapeHtml(activity.title)}</h5>
+                    <h5 class="list-item-title">${escapeHtml(activity.name || activity.title || "未命名活动")}</h5>
                     <div class="list-item-meta">
-                        <span class="meta-pill">${escapeHtml(activity.scene || "未分类")}</span>
-                        <span class="meta-pill">奖池：${escapeHtml(activity.prizePool || "待配置")}</span>
+                        <span class="meta-pill">参与用户：${Array.isArray(activity.activityUserList) ? activity.activityUserList.length : 0} 人</span>
+                        <span class="meta-pill">奖品项：${Array.isArray(activity.activityPrizeList) ? activity.activityPrizeList.length : 0} 项</span>
                     </div>
                 </div>
-                <span class="status-pill ${resolveStatusClass(activity.status)}">${escapeHtml(activity.status)}</span>
+                <span class="status-pill ${resolveStatusClass(activity.status)}">${escapeHtml(activity.status || "已创建")}</span>
             </div>
             <p>${escapeHtml(activity.description || "暂无活动说明")}</p>
             <div class="list-item-meta">
-                <span class="meta-pill">开始：${formatDateTime(activity.startAt)}</span>
-                <span class="meta-pill">开奖：${formatDateTime(activity.drawAt)}</span>
-                <span class="meta-pill">上限：${activity.capacity || "不限"}</span>
+                <span class="meta-pill">活动 ID：${escapeHtml(String(activity.id || "待分配"))}</span>
+                <span class="meta-pill">创建时间：${formatDateTime(activity.createdAt)}</span>
             </div>
         </article>
     `).join("");
@@ -543,16 +821,12 @@ function renderPrizes(state) {
                 <div>
                     <h5 class="prize-item-title">${escapeHtml(prize.name)}</h5>
                     <div class="list-item-meta">
-                        <span class="meta-pill">价格 ${formatPrice(prize.price)}</span>
-                        <span class="meta-pill">编号 ${escapeHtml(String(prize.id))}</span>
+                        <span class="meta-pill">价值 ${formatPrice(prize.price)}</span>
                     </div>
                 </div>
-                <span class="card-count-pill">奖品</span>
+                <span class="card-count-pill">编号 ${escapeHtml(String(prize.id))}</span>
             </div>
             <p>${escapeHtml(prize.description || prize.notes || "暂无奖品说明")}</p>
-            <div class="list-item-meta">
-                <span class="meta-pill">图片 ${escapeHtml(prize.imageUrl || "未设置")}</span>
-            </div>
         </article>
     `).join("");
 
@@ -615,12 +889,14 @@ async function loadMembers(state) {
         const result = await requestJson(`/user/getListInfo${query}`);
         state.members = normalizeMembers(Array.isArray(result?.data) ? result.data : result);
         state.memberLoading = false;
+        syncActivityComposeOptions(state);
         renderMembers(state);
         renderMetrics(state);
     } catch (error) {
         state.members = [];
         state.memberLoading = false;
         state.memberLoadError = error.message || "人员列表加载失败，请稍后重试。";
+        syncActivityComposeOptions(state);
         showInlineStatus(state.elements.memberListAlert, "error", state.memberLoadError);
         renderMembers(state);
         renderMetrics(state);
@@ -638,12 +914,14 @@ async function loadPrizes(state) {
         const pageData = result?.data ?? result;
         state.prizes = normalizePrizes(pageData?.records);
         state.prizeLoading = false;
+        syncActivityComposeOptions(state);
         renderPrizes(state);
         renderMetrics(state);
     } catch (error) {
         state.prizes = [];
         state.prizeLoading = false;
         state.prizeLoadError = error.message || "奖品列表加载失败，请稍后重试。";
+        syncActivityComposeOptions(state);
         showInlineStatus(state.elements.prizeListAlert, "error", state.prizeLoadError);
         renderPrizes(state);
         renderMetrics(state);
@@ -779,6 +1057,9 @@ function resolveStatusClass(status) {
     if (status === "进行中") {
         return "status-live";
     }
+    if (status === "已创建") {
+        return "status-live";
+    }
     if (status === "预热中") {
         return "status-warm";
     }
@@ -800,4 +1081,51 @@ function formatPrice(value) {
         return String(value || "0");
     }
     return amount.toFixed(2);
+}
+
+function renderPrizeSelectedFile(state, file) {
+    if (!state.elements.prizeFileName) {
+        return;
+    }
+
+    if (!file) {
+        state.elements.prizeFileName.textContent = "未选择文件";
+        if (state.elements.prizeFileInlineTip) {
+            state.elements.prizeFileInlineTip.textContent = "未选择文件";
+        }
+        return;
+    }
+
+    const fileTypeLabel = formatPrizeFileType(file);
+    state.elements.prizeFileName.textContent = `${fileTypeLabel}（${formatFileSize(file.size)}）`;
+    if (state.elements.prizeFileInlineTip) {
+        state.elements.prizeFileInlineTip.textContent = `${fileTypeLabel}（${formatFileSize(file.size)}）`;
+    }
+}
+
+function formatFileSize(bytes) {
+    const value = Number(bytes || 0);
+    if (value < 1024) {
+        return `${value}B`;
+    }
+    if (value < 1024 * 1024) {
+        return `${(value / 1024).toFixed(1)}KB`;
+    }
+    return `${(value / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function formatPrizeFileType(file) {
+    const mimeType = String(file?.type || "").trim().toLowerCase();
+    if (mimeType.startsWith("image/")) {
+        const subtype = mimeType.slice("image/".length);
+        if (subtype === "jpeg") {
+            return "JPG";
+        }
+        if (subtype) {
+            return subtype.toUpperCase();
+        }
+        return "IMAGE";
+    }
+
+    return "未知类型";
 }

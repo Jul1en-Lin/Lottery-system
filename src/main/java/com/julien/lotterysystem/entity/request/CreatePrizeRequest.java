@@ -16,8 +16,8 @@ public class CreatePrizeRequest {
     @NotBlank(message = "奖品描述不能为空")
     private String description;
 
-    /** 奖品价格 */
-    @NotNull(message = "奖品价格不能为空")
+    /** 奖品价值 */
+    @NotNull(message = "奖品价值不能为空")
     private BigDecimal price;
 
     /** 奖品id */

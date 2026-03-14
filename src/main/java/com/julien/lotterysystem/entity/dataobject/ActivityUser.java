@@ -5,25 +5,27 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 活动关联用户表
+ */
 @Data
-@TableName("prize")
-public class Prize {
+@TableName("activity_user")
+public class ActivityUser {
     /** 主键 */
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
-    /** 奖品名称 */
-    private String name;
     /** 创建时间 */
     private LocalDateTime gmtCreate;
     /** 更新时间 */
     private LocalDateTime gmtModified;
-    /** 奖品图片地址 */
-    private String imageUrl;
-    /** 奖品描述 */
-    private String description;
-    /** 奖品价值 */
-    private BigDecimal price;
+    /** 活动ID */
+    private Long activityId;
+    /** 用户ID */
+    private Long userId;
+    /** 用户名 */
+    private String userName;
+    /** 状态 */
+    private String status;
 }

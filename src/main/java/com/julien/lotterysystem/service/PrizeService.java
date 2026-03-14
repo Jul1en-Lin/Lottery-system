@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
 
 public interface PrizeService {
 
-    // 翻页查询列表
+    // 翻页查询奖品列表
     PrizeInfoListResponse<PrizeInfoResponse> getPrizeInfoList(Page<Prize> page);
 
     /**
