@@ -20,7 +20,9 @@ public interface ErrorConstants {
     ErrorCode USER_EMPTY = new ErrorCode(204,"用户为空");
     ErrorCode INSERT_ERROR = new ErrorCode(205,"插入数据失败");
     ErrorCode SET_TIER_FAILED = new ErrorCode(206,"设置奖品等级失败");
-
+    ErrorCode SET_ACTIVITY_DETAIL_FAIL = new ErrorCode(207,"设置活动详情DTO失败");
+    ErrorCode SET_ACTIVITY_USER_LIST_FAIL = new ErrorCode(208,"设置活动用户列表DTO失败");
+    ErrorCode SET_ACTIVITY_PRIZE_LIST_FAIL = new ErrorCode(209,"设置活动奖品列表DTO失败");
 
 
     // ------- 参数校验 --------- //

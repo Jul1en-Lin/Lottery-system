@@ -11,11 +11,13 @@ import com.julien.lotterysystem.entity.dataobject.Activity;
 import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dataobject.ActivityUser;
 import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
+import com.julien.lotterysystem.entity.dto.ActivityPrizeDto;
 import com.julien.lotterysystem.entity.dto.ActivityUserDto;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
 import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.ActivityService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ActivityServiceImpl implements ActivityService {
 
@@ -91,6 +94,7 @@ public class ActivityServiceImpl implements ActivityService {
         try {
             activityMapper.insert(activityInfo);
         } catch (Exception e) {
+            log.error("插入活动表失败，活动名：{}", request.getName(),e);
             throw new LotteryException(ErrorConstants.INSERT_ERROR);
         }
 
@@ -126,6 +130,7 @@ public class ActivityServiceImpl implements ActivityService {
                 try {
                     activityPrize.setPrizeTiers(PrizeTiersEnum.forName(activityPrizeList.getPrizeTiers()).name());
                 } catch (Exception e) {
+                    log.error("设置奖品等级失败，奖品等级：{}", activityPrizeList.getPrizeTiers(),e);
                     throw new LotteryException(ErrorConstants.SET_TIER_FAILED);
                 }
                 return activityPrize;
@@ -138,8 +143,18 @@ public class ActivityServiceImpl implements ActivityService {
 
         // 整合活动信息，并缓存到Redis中
         ActivityDetailDto detailDto = converterActivityDetailDto(activityInfo, activityUsers, activityPrizes);
+        // 缓存到Redis中
+        cacheActivityDetail(detailDto);
         // 返回活动id
         return activityInfo.getId();
+
+    }
+
+    /**
+     * 缓存活动详情到Redis中
+     * @param detailDto 活动详情
+     */
+    private void cacheActivityDetail(ActivityDetailDto detailDto) {
 
     }
 
@@ -154,6 +169,7 @@ public class ActivityServiceImpl implements ActivityService {
                                                          List<ActivityUser> activityUsers,
                                                          List<ActivityPrize> activityPrizes) {
         ActivityDetailDto detailDto = new ActivityDetailDto();
+
         // 设置活动信息
         setActivityInfo(detailDto,activityInfo);
         // 设置活动关联用户Dto列表
@@ -161,32 +177,64 @@ public class ActivityServiceImpl implements ActivityService {
         // 设置活动关联奖品Dto列表
         setActivityPrizeList(detailDto,activityPrizes);
 
+        return detailDto;
     }
 
     // 设置活动信息
     private void setActivityInfo(ActivityDetailDto detailDto, Activity activityInfo) {
-        detailDto.setAcivityId(activityInfo.getId());
-        detailDto.setActivityName(activityInfo.getActivityName());
-        detailDto.setDescription(activityInfo.getDescription());
-        // activityInfo已用过 Enum.forName,故直接获取描述
-        detailDto.setStatus(activityInfo.getStatus());
+        try {
+            detailDto.setAcivityId(activityInfo.getId());
+            detailDto.setActivityName(activityInfo.getActivityName());
+            detailDto.setDescription(activityInfo.getDescription());
+            // activityInfo已用过 Enum.forName,故直接获取描述
+            detailDto.setStatus(activityInfo.getStatus());
+        } catch (Exception e) {
+            log.error("设置活动详情失败，活动名：{}", activityInfo.getActivityName(),e);
+            throw new LotteryException(ErrorConstants.SET_ACTIVITY_DETAIL_FAIL);
+        }
     }
 
     // 设置活动关联用户Dto列表
     private void setActivityUserList(ActivityDetailDto detailDto, List<ActivityUser> activityUsers) {
-        List<ActivityUserDto> activityUserDtoList = activityUsers.stream()
+        try {
+            List<ActivityUserDto> activityUserDtoList = activityUsers.stream()
             .map(activityUser -> {
                 ActivityUserDto activityUserDto = new ActivityUserDto();
                 // 属性赋值
                 activityUserDto.setUserId(activityUser.getUserId());
                 activityUserDto.setUserName(activityUser.getUserName());
+                // activityUsers 已用过 Enum.forName,故直接获取描述
                 activityUserDto.setUserStatus(activityUser.getStatus());
                 return activityUserDto;
             })
             .collect(Collectors.toList());
+        detailDto.setActivityUserList(activityUserDtoList);
+        } catch (Exception e) {
+            log.error("设置活动用户列表失败，用户数量：{}", activityUsers.size(),e);
+            throw new LotteryException(ErrorConstants.SET_ACTIVITY_USER_LIST_FAIL);
+        }
 
     }
     // 设置活动关联奖品Dto列表
     private void setActivityPrizeList(ActivityDetailDto detailDto, List<ActivityPrize> activityPrizes) {
+        try {
+            List<ActivityPrizeDto> activityPrizeDtoList = activityPrizes.stream()
+            .map(activityPrize -> {
+                ActivityPrizeDto activityPrizeDto = new ActivityPrizeDto();
+                // 属性赋值
+                activityPrizeDto.setPrizeId(activityPrize.getPrizeId());
+                activityPrizeDto.setPrizeName(prizeMapper.selectById(activityPrize.getPrizeId()).getName());
+                activityPrizeDto.setPrizeAmount(activityPrize.getPrizeAmount());
+                // activityPrizes 已用过 Enum.forName,故直接获取描述
+                activityPrizeDto.setPrizeTiers(activityPrize.getPrizeTiers());
+                activityPrizeDto.setPrizeStatus(activityPrize.getStatus());
+                return activityPrizeDto;
+            })
+            .collect(Collectors.toList());
+        detailDto.setActivityPrizeList(activityPrizeDtoList);
+        } catch (Exception e) {
+            log.error("设置活动奖品列表失败，奖品数量：{}", activityPrizes.size(),e);
+            throw new LotteryException(ErrorConstants.SET_ACTIVITY_PRIZE_LIST_FAIL);
+        }
     }
 }
