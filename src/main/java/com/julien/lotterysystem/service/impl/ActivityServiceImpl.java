@@ -7,6 +7,7 @@ import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeTiersEnum;
 import com.julien.lotterysystem.common.enums.UserStatusEnum;
 import com.julien.lotterysystem.common.exception.LotteryException;
+import com.julien.lotterysystem.common.utils.JacksonUtil;
 import com.julien.lotterysystem.entity.dataobject.Activity;
 import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dataobject.ActivityUser;
@@ -20,6 +21,7 @@ import com.julien.lotterysystem.service.ActivityService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +40,16 @@ public class ActivityServiceImpl implements ActivityService {
     private PrizeMapper prizeMapper;
     @Autowired
     private SqlSessionFactory sqlSessionFactory;
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    // 活动缓存key前缀
+    private final String ACTIVITY_PREFIX = "activity_";
+    // 缓存超时时间，单位：秒
+    private final Long CACHE_TIMEOUT = 60 * 60L;
 
     @Override
-    @Transactional(rollbackFor = Exception.class) // 添加事务回滚
+    @Transactional(rollbackFor = Exception.class) // 添加事务回滚，避免脏数据
     public CreateActivityResponse create(CreateActivityRequest request) {
         // 校验数据
         checkActivityRequest(request);
@@ -83,6 +92,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     /**
      * 插入活动表、活动关联用户表、活动关联奖品表
+     * 整合活动信息，缓存到Redis中
      * @return 活动id
      */
     private Long insertActivity(CreateActivityRequest request) {
@@ -147,15 +157,27 @@ public class ActivityServiceImpl implements ActivityService {
         cacheActivityDetail(detailDto);
         // 返回活动id
         return activityInfo.getId();
-
     }
 
     /**
-     * 缓存活动详情到Redis中
+     * 缓存活动详情到 Redis 中
+     * 缓存失败不应该抛出异常，避免事务回滚，数据入库成功后，缓存失败不影响业务逻辑
      * @param detailDto 活动详情
      */
     private void cacheActivityDetail(ActivityDetailDto detailDto) {
-
+        if (detailDto == null || detailDto.getAcivityId() == null) {
+            log.warn("缓存活动详情失败，缓存活动id为空");
+            throw new LotteryException(ErrorConstants.CACHE_ID_EMPTY);
+        }
+        // 缓存逻辑
+        try {
+             // 这里可以使用RedisTemplate或者其他Redis客户端进行缓存操作
+             redisTemplate.opsForValue().set(ACTIVITY_PREFIX + detailDto.getAcivityId(),
+                     JacksonUtil.serialize(detailDto),CACHE_TIMEOUT);
+        } catch (Exception e) {
+             log.error("缓存活动详情失败，缓存活动id：{}", detailDto.getAcivityId(),e);
+             throw new LotteryException(ErrorConstants.CACHE_ERROR);
+        }
     }
 
     /**

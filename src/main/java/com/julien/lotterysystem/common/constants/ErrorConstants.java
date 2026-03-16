@@ -23,7 +23,8 @@ public interface ErrorConstants {
     ErrorCode SET_ACTIVITY_DETAIL_FAIL = new ErrorCode(207,"设置活动详情DTO失败");
     ErrorCode SET_ACTIVITY_USER_LIST_FAIL = new ErrorCode(208,"设置活动用户列表DTO失败");
     ErrorCode SET_ACTIVITY_PRIZE_LIST_FAIL = new ErrorCode(209,"设置活动奖品列表DTO失败");
-
+    ErrorCode CACHE_ID_EMPTY = new ErrorCode(210,"缓存活动id为空");
+    ErrorCode CACHE_ERROR = new ErrorCode(211,"缓存活动详情失败");
 
     // ------- 参数校验 --------- //
     // 参数校验失败
