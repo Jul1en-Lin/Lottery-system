@@ -13,6 +13,7 @@ import com.julien.lotterysystem.common.utils.JacksonUtil;
 import com.julien.lotterysystem.entity.dataobject.Activity;
 import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dataobject.ActivityUser;
+import com.julien.lotterysystem.entity.dataobject.Prize;
 import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.dto.ActivityPrizeDto;
 import com.julien.lotterysystem.entity.dto.ActivityUserDto;
@@ -164,25 +165,42 @@ public class ActivityServiceImpl implements ActivityService {
         // 整合活动信息，并缓存到Redis中
         ActivityDetailDto detailDto = converterActivityDetailDto(activityInfo, activityUsers, activityPrizes);
         // 缓存到Redis中
-        cacheActivityDetail(detailDto);
+        cacheActivity(detailDto);
         // 返回活动id
         return activityInfo.getId();
     }
 
     /**
-     * 缓存活动详情到 Redis 中
+     * 入库成功后，缓存活动详情到 Redis 中
      * 缓存失败不应该抛出异常，避免事务回滚，数据入库成功后，缓存失败不影响业务逻辑
-     * Redis : key = ACTIVITY_PREFIX + activityId
-     * @param detailDto 活动详情
+     * Redis: key = ACTIVITY_PREFIX + activityId
+     *      : data = detailDto 活动详情（包含成功入库后的奖品url和price）
      */
-    private void cacheActivityDetail(ActivityDetailDto detailDto) {
+    @Override
+    public void cacheActivity(ActivityDetailDto detailDto) {
         if (detailDto == null || detailDto.getActivityId() == null) {
             log.warn("缓存活动详情失败，缓存活动id为空");
             throw new LotteryException(ErrorConstants.CACHE_ID_EMPTY);
         }
-        // 缓存逻辑
+        // 完善detailDto（添加奖品url和price），便于后续直接取出奖品信息
         try {
-             // 这里可以使用RedisTemplate或者其他Redis客户端进行缓存操作
+            // 查询活动奖品表
+            List<ActivityPrize> activityPrize = activityPrizeMapper.selectList(new LambdaQueryWrapper<ActivityPrize>()
+                    .eq(ActivityPrize::getActivityId, detailDto.getActivityId()));
+            // 根据活动关联奖品id和活动id查询奖品列表的价格
+            List<Long> prizeIdsList = activityPrize.stream()
+                   .map(ActivityPrize::getPrizeId)
+                   .toList();
+            // 赋值奖品价格和图片地址
+            prizeIdsList.forEach(prizeId -> {
+                Prize prize = prizeMapper.selectById(prizeId);
+                detailDto.getActivityPrizeList()
+                       .forEach(activityPrizeDto -> {
+                           activityPrizeDto.setPrice(prize.getPrice());
+                           activityPrizeDto.setImageUrl(prize.getImageUrl());
+                       });
+            });
+             // 使用RedisTemplate客户端进行缓存操作
              redisTemplate.opsForValue().
                      set(ACTIVITY_PREFIX + detailDto.getActivityId(),
                      JacksonUtil.serialize(detailDto),CACHE_TIMEOUT);
@@ -316,15 +334,14 @@ public class ActivityServiceImpl implements ActivityService {
         }
         ActivityDetailDto activityDetail = new ActivityDetailDto();
         // 从Redis获取活动详情
-        activityDetail = getActivityDetailFromCache(activityId);
-        if (activityDetail != null) {
-            log.info("从Redis获取活动详情成功，activityDetailDto：{}",activityDetail);
-            return activityDetail;
-        }
+//        activityDetail = getActivityDetailFromCache(activityId);
+//        if (activityDetail != null) {
+//            log.info("从Redis获取活动详情成功，activityDetailDto：{}",activityDetail);
+//            return activityDetail;
+//        }
         // 从Redis获取失败，从数据库查询
-        activityDetail = searchActivityDetailFromDb(activityId);
+        activityDetail = getActivityDetailFromDb(activityId);
         // 缓存活动详情到Redis
-        cacheActivityDetail(activityDetail);
         return activityDetail;
     }
 
@@ -349,7 +366,7 @@ public class ActivityServiceImpl implements ActivityService {
      * @param activityId 活动id
      * @return 活动详情
      */
-    private ActivityDetailDto searchActivityDetailFromDb(Long activityId) {
+    private ActivityDetailDto getActivityDetailFromDb(Long activityId) {
         // 查询活动表
         Activity activity = activityMapper.selectById(activityId);
         if (activity == null) {
@@ -361,7 +378,7 @@ public class ActivityServiceImpl implements ActivityService {
         List<ActivityUser> activityUser = activityUserMapper.selectList(new LambdaQueryWrapper<ActivityUser>()
                 .eq(ActivityUser::getActivityId, activityId));
         if (activityUser.isEmpty()) {
-            log.info("从数据库查询活动人员详情失败，activityId：{}", activityId);
+            log.warn("从数据库查询活动人员详情失败，activityId：{}", activityId);
             throw new LotteryException(ErrorConstants.ACTIVITY_USER_NOT_EXIST);
         }
 
@@ -369,14 +386,26 @@ public class ActivityServiceImpl implements ActivityService {
         List<ActivityPrize> activityPrize = activityPrizeMapper.selectList(new LambdaQueryWrapper<ActivityPrize>()
                 .eq(ActivityPrize::getActivityId, activityId));
         if (activityPrize.isEmpty()) {
-            log.info("从数据库查询活动奖品详情失败，activityId：{}", activityId);
+            log.warn("从数据库查询活动奖品详情失败，activityId：{}", activityId);
             throw new LotteryException(ErrorConstants.ACTIVITY_PRIZE_NOT_EXIST);
         }
 
-        // 根据活动关联奖品id和活动id查询奖品列表的价格
-
         ActivityDetailDto detailDto = converterActivityDetailDto(activity,
                         activityUser, activityPrize);
+
+        // 根据活动关联奖品id和活动id查询奖品列表的价格
+        List<Long> prizeIdsList = activityPrize.stream()
+               .map(ActivityPrize::getPrizeId)
+               .toList();
+        // 赋值奖品价格和图片地址
+        prizeIdsList.forEach(prizeId -> {
+            Prize prize = prizeMapper.selectById(prizeId);
+            detailDto.getActivityPrizeList()
+                   .forEach(activityPrizeDto -> {
+                       activityPrizeDto.setPrice(prize.getPrice());
+                       activityPrizeDto.setImageUrl(prize.getImageUrl());
+                   });
+        });
         return detailDto;
     }
 

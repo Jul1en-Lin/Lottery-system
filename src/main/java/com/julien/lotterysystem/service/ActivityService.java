@@ -3,11 +3,14 @@ package com.julien.lotterysystem.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.julien.lotterysystem.entity.dataobject.Activity;
+import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
 import com.julien.lotterysystem.entity.response.ActivityListResponse;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
 import jakarta.validation.Valid;
+
+import java.util.List;
 
 public interface ActivityService {
 
@@ -16,6 +19,12 @@ public interface ActivityService {
      * @return 活动id
      */
     CreateActivityResponse create(@Valid CreateActivityRequest request);
+
+    /**
+     * 缓存活动详情到 Redis 中
+     * @param detailDto 活动详情
+     */
+    void cacheActivity(ActivityDetailDto detailDto);
 
     /**
      * 翻页查询活动列表
