@@ -60,15 +60,27 @@ public class JacksonUtil {
         return JacksonUtil.tryParse(() -> OBJECT_MAPPER.readValue(json, result.getClass()));
     }
 
+//    /**
+//     * 反序列化 List 类型的 JSON 字符串
+//     * @param json
+//     * @param results
+//     * @return 反序列化后的 List 对象
+//     * @param <T>
+//     */
+//    public static <T> T deSerialize(String json, Class<?> results) {
+//        JavaType Type = OBJECT_MAPPER.getTypeFactory().constructParametricType(results, Result.class);
+//        return JacksonUtil.tryParse(() -> OBJECT_MAPPER.readValue(json, Type));
+//    }
+
     /**
-     * 反序列化 List 类型的 JSON 字符串
-     * @param json
-     * @param results
-     * @return 反序列化后的 List 对象
-     * @param <T>
+     * 直接按目标 Class 反序列化 JSON 字符串（用于普通 DTO、非泛型类型）
+     * 此方法不会构造带泛型参数的 Type，避免出现 TypeBindings 错误
+     * @param json JSON 字符串
+     * @param clazz 目标类
+     * @param <T> 目标类型
+     * @return 反序列化后的目标对象
      */
-    public static <T> T deSerialize(String json, Class<?> results) {
-        JavaType Type = OBJECT_MAPPER.getTypeFactory().constructParametricType(results, Result.class);
-        return JacksonUtil.tryParse(() -> OBJECT_MAPPER.readValue(json, Type));
+    public static <T> T deSerialize(String json, Class<T> clazz) {
+        return JacksonUtil.tryParse(() -> OBJECT_MAPPER.readValue(json, clazz));
     }
 }
