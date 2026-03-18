@@ -21,8 +21,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 8888  # 8888 监听 6379 端口
-      connect-timeout: 60
+      port: 8888 #监听6379端口
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true #配置驼峰自动转换

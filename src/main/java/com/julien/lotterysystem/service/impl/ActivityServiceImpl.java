@@ -1,6 +1,8 @@
 package com.julien.lotterysystem.service.impl;
 
 import com.baomidou.mybatisplus.core.batch.MybatisBatch;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.enums.ActivityStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
@@ -15,6 +17,7 @@ import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.dto.ActivityPrizeDto;
 import com.julien.lotterysystem.entity.dto.ActivityUserDto;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
+import com.julien.lotterysystem.entity.response.ActivityListResponse;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
 import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.ActivityService;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +38,8 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Autowired
     private ActivityMapper activityMapper;
+    @Autowired
+    private ActivityUserMapper activityUserMapper;
     @Autowired
     private UserMapper userMapper;
     @Autowired
@@ -47,6 +53,8 @@ public class ActivityServiceImpl implements ActivityService {
     private final String ACTIVITY_PREFIX = "activity_";
     // 缓存超时时间，单位：秒
     private final Long CACHE_TIMEOUT = 60 * 60L;
+    @Autowired
+    private ActivityPrizeMapper activityPrizeMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 添加事务回滚，避免脏数据
@@ -60,6 +68,8 @@ public class ActivityServiceImpl implements ActivityService {
         response.setActivityId(activityId);
         return response;
     }
+
+
 
     /**
      * 校验活动请求参数
@@ -162,21 +172,23 @@ public class ActivityServiceImpl implements ActivityService {
     /**
      * 缓存活动详情到 Redis 中
      * 缓存失败不应该抛出异常，避免事务回滚，数据入库成功后，缓存失败不影响业务逻辑
+     * Redis : key = ACTIVITY_PREFIX + activityId
      * @param detailDto 活动详情
      */
     private void cacheActivityDetail(ActivityDetailDto detailDto) {
-        if (detailDto == null || detailDto.getAcivityId() == null) {
+        if (detailDto == null || detailDto.getActivityId() == null) {
             log.warn("缓存活动详情失败，缓存活动id为空");
             throw new LotteryException(ErrorConstants.CACHE_ID_EMPTY);
         }
         // 缓存逻辑
         try {
              // 这里可以使用RedisTemplate或者其他Redis客户端进行缓存操作
-             redisTemplate.opsForValue().set(ACTIVITY_PREFIX + detailDto.getAcivityId(),
+             redisTemplate.opsForValue().
+                     set(ACTIVITY_PREFIX + detailDto.getActivityId(),
                      JacksonUtil.serialize(detailDto),CACHE_TIMEOUT);
         } catch (Exception e) {
-             log.error("缓存活动详情失败，缓存活动id：{}", detailDto.getAcivityId(),e);
-             throw new LotteryException(ErrorConstants.CACHE_ERROR);
+             log.error("缓存活动详情失败，缓存活动id：{}", detailDto.getActivityId(),e);
+             // 缓存失败不应该抛出异常，避免事务回滚
         }
     }
 
@@ -205,11 +217,10 @@ public class ActivityServiceImpl implements ActivityService {
     // 设置活动信息
     private void setActivityInfo(ActivityDetailDto detailDto, Activity activityInfo) {
         try {
-            detailDto.setAcivityId(activityInfo.getId());
+            detailDto.setActivityId(activityInfo.getId());
             detailDto.setActivityName(activityInfo.getActivityName());
             detailDto.setDescription(activityInfo.getDescription());
-            // activityInfo已用过 Enum.forName,故直接获取描述
-            detailDto.setStatus(activityInfo.getStatus());
+            detailDto.setStatus(ActivityStatusEnum.forName(activityInfo.getStatus()));
         } catch (Exception e) {
             log.error("设置活动详情失败，活动名：{}", activityInfo.getActivityName(),e);
             throw new LotteryException(ErrorConstants.SET_ACTIVITY_DETAIL_FAIL);
@@ -225,8 +236,7 @@ public class ActivityServiceImpl implements ActivityService {
                 // 属性赋值
                 activityUserDto.setUserId(activityUser.getUserId());
                 activityUserDto.setUserName(activityUser.getUserName());
-                // activityUsers 已用过 Enum.forName,故直接获取描述
-                activityUserDto.setUserStatus(activityUser.getStatus());
+                activityUserDto.setUserStatus(UserStatusEnum.forName(activityUser.getStatus()));
                 return activityUserDto;
             })
             .collect(Collectors.toList());
@@ -247,9 +257,8 @@ public class ActivityServiceImpl implements ActivityService {
                 activityPrizeDto.setPrizeId(activityPrize.getPrizeId());
                 activityPrizeDto.setPrizeName(prizeMapper.selectById(activityPrize.getPrizeId()).getName());
                 activityPrizeDto.setPrizeAmount(activityPrize.getPrizeAmount());
-                // activityPrizes 已用过 Enum.forName,故直接获取描述
-                activityPrizeDto.setPrizeTiers(activityPrize.getPrizeTiers());
-                activityPrizeDto.setPrizeStatus(activityPrize.getStatus());
+                activityPrizeDto.setPrizeTiers(PrizeTiersEnum.forName(activityPrize.getPrizeTiers()));
+                activityPrizeDto.setPrizeStatus(PrizeStatusEnum.forName(activityPrize.getStatus()));
                 return activityPrizeDto;
             })
             .collect(Collectors.toList());
@@ -259,4 +268,116 @@ public class ActivityServiceImpl implements ActivityService {
             throw new LotteryException(ErrorConstants.SET_ACTIVITY_PRIZE_LIST_FAIL);
         }
     }
+
+    /**
+     * 翻页查询活动列表
+     */
+    @Override
+    public ActivityListResponse queryActivityList(Page<Activity> page) {
+        log.info("分页查询活动列表，page: {}", page);
+        Page<Activity> activityList = activityMapper.selectPage(page,new LambdaQueryWrapper<Activity>()
+                .select(Activity::getId,
+                        Activity::getActivityName,
+                        Activity::getDescription,
+                        Activity::getStatus));
+        // 构造当前页活动列表record
+        List<ActivityListResponse.ActivityInfo> activityInfoList = activityList.getRecords()
+                .stream()
+                .map(activity -> {
+                    ActivityListResponse.ActivityInfo activityInfo = new ActivityListResponse.ActivityInfo();
+                    activityInfo.setActivityId(activity.getId());
+                    activityInfo.setActivityName(activity.getActivityName());
+                    activityInfo.setDescription(activity.getDescription());
+                    activityInfo.setValid(ActivityStatusEnum.START.name().equals(activity.getStatus()));
+                    return activityInfo;
+                })
+                .toList();
+        // 构造活动总数total
+        Long total = activityList.getTotal();
+
+        // 构造返回
+        ActivityListResponse response = new ActivityListResponse();
+        response.setTotal(total);
+        response.setRecords(activityInfoList);
+        return response;
+    }
+
+    /**
+     * 查询活动详情
+     * 尝试从Redis获取活动详情，若不存在则从数据库查询并缓存
+     * 复用了从converterActivityDetailDto、cacheActivityDetail方法
+     * @see #converterActivityDetailDto,#cacheActivityDetail
+     * @param activityId 活动id
+     */
+    @Override
+    public ActivityDetailDto getActivityDetail(Long activityId) {
+        if (activityId == null) {
+            return null;
+        }
+        ActivityDetailDto activityDetail = new ActivityDetailDto();
+        // 从Redis获取活动详情
+        activityDetail = getActivityDetailFromCache(activityId);
+        if (activityDetail != null) {
+            log.info("从Redis获取活动详情成功，activityDetailDto：{}",activityDetail);
+            return activityDetail;
+        }
+        // 从Redis获取失败，从数据库查询
+        activityDetail = searchActivityDetailFromDb(activityId);
+        // 缓存活动详情到Redis
+        cacheActivityDetail(activityDetail);
+        return activityDetail;
+    }
+
+    /**
+     * 从 Redis 获取活动详情
+     * @param activityId 活动id
+     * @return 活动详情
+     */
+    private ActivityDetailDto getActivityDetailFromCache(Long activityId) {
+        String activityDetailDtoJson = redisTemplate.opsForValue().get(ACTIVITY_PREFIX + activityId);
+        if (!StringUtils.hasText(activityDetailDtoJson)) {
+            log.info("从Redis获取活动详情失败，key：{}", ACTIVITY_PREFIX + activityId);
+            return null;
+        }
+        // 反序列化
+        return JacksonUtil.deSerialize(activityDetailDtoJson,
+                ActivityDetailDto.class);
+    }
+
+    /**
+     * 从数据库查询活动详情
+     * @param activityId 活动id
+     * @return 活动详情
+     */
+    private ActivityDetailDto searchActivityDetailFromDb(Long activityId) {
+        // 查询活动表
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            log.info("从数据库查询活动详情失败，activityId：{}", activityId);
+            throw new LotteryException(ErrorConstants.ACTIVITY_NOT_EXIST);
+        }
+
+        // 查询活动人员表
+        List<ActivityUser> activityUser = activityUserMapper.selectList(new LambdaQueryWrapper<ActivityUser>()
+                .eq(ActivityUser::getActivityId, activityId));
+        if (activityUser.isEmpty()) {
+            log.info("从数据库查询活动人员详情失败，activityId：{}", activityId);
+            throw new LotteryException(ErrorConstants.ACTIVITY_USER_NOT_EXIST);
+        }
+
+        // 查询活动奖品表
+        List<ActivityPrize> activityPrize = activityPrizeMapper.selectList(new LambdaQueryWrapper<ActivityPrize>()
+                .eq(ActivityPrize::getActivityId, activityId));
+        if (activityPrize.isEmpty()) {
+            log.info("从数据库查询活动奖品详情失败，activityId：{}", activityId);
+            throw new LotteryException(ErrorConstants.ACTIVITY_PRIZE_NOT_EXIST);
+        }
+
+        // 根据活动关联奖品id和活动id查询奖品列表的价格
+
+        ActivityDetailDto detailDto = converterActivityDetailDto(activity,
+                        activityUser, activityPrize);
+        return detailDto;
+    }
+
 }

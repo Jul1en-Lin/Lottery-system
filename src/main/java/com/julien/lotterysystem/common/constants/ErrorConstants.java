@@ -14,7 +14,6 @@ public interface ErrorConstants {
     Integer UPLOAD_PICTURE_FAILED = 200;
     // 图片路径不能为空
     Integer PICTURE_PATH_EMPTY = 201;
-
     ErrorCode PRIZE_COUNT_NOT_MATCH = new ErrorCode(202,"奖品数量与人员数量不匹配");
     ErrorCode PRIZE_EMPTY = new ErrorCode(203,"奖品为空");
     ErrorCode USER_EMPTY = new ErrorCode(204,"用户为空");
@@ -27,6 +26,10 @@ public interface ErrorConstants {
     ErrorCode CACHE_ERROR = new ErrorCode(211,"缓存活动详情失败");
 
     // ------- 参数校验 --------- //
-    // 参数校验失败
     ErrorCode VALIDATION_FAILED = new ErrorCode(40001,"参数校验失败");
+
+    // ------- 抽奖模块 --------- //
+    ErrorCode ACTIVITY_NOT_EXIST = new ErrorCode(500,"活动不存在");
+    ErrorCode ACTIVITY_PRIZE_NOT_EXIST = new ErrorCode(501,"活动关联奖品不存在");
+    ErrorCode ACTIVITY_USER_NOT_EXIST = new ErrorCode(502,"活动关联人员不存在");
 }

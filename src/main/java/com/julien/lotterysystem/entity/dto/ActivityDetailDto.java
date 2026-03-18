@@ -1,5 +1,6 @@
 package com.julien.lotterysystem.entity.dto;
 
+import com.julien.lotterysystem.common.enums.ActivityStatusEnum;
 import lombok.Data;
 
 import java.util.List;
@@ -11,13 +12,14 @@ import java.util.List;
 @Data
 public class ActivityDetailDto {
     /** 活动ID */
-    private Long acivityId;
+    private Long activityId;
     /** 活动名称 */
     private String activityName;
     /** 活动描述 */
     private String description;
     /** 活动状态 */
-    private String status;
+    private ActivityStatusEnum status;
+
     /** 活动奖品Dto列表 */
     List<ActivityPrizeDto> activityPrizeList;
     /** 活动用户Dto列表 */

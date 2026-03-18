@@ -1,15 +1,18 @@
 package com.julien.lotterysystem.controller;
 
+import com.julien.lotterysystem.entity.dataobject.Activity;
+import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
+import com.julien.lotterysystem.entity.response.ActivityListResponse;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
 import com.julien.lotterysystem.service.ActivityService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import com.baomidou.mybatisplus.extension.plugins.pagination.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/activity")
 public class ActivityController {
@@ -23,5 +26,24 @@ public class ActivityController {
     @PostMapping("/create")
     public CreateActivityResponse create(@Valid @RequestBody CreateActivityRequest request) {
         return activityService.create(request);
+    }
+
+    /**
+     * 翻页查询活动列表
+     * @param page 分页参数
+     */
+    @GetMapping("/queryList")
+    public ActivityListResponse queryActivityList(@RequestBody Page<Activity> page) {
+        return activityService.queryActivityList(page);
+    }
+
+    /**
+     * 查询活动详情
+     * @param activityId 活动id
+     * @return 活动详情
+     */
+    @GetMapping("/getDetail")
+    public ActivityDetailDto getActivityDetail(@RequestParam("activityId") Long activityId) {
+        return activityService.getActivityDetail(activityId);
     }
 }
