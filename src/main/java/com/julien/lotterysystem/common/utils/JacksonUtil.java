@@ -5,7 +5,6 @@ import com.julien.lotterysystem.entity.response.Result;
 import org.springframework.boot.json.JsonParseException;
 import org.springframework.util.ReflectionUtils;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JavaType;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.Callable;
