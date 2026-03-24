@@ -9,7 +9,7 @@ import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeTiersEnum;
 import com.julien.lotterysystem.common.enums.UserStatusEnum;
 import com.julien.lotterysystem.common.exception.LotteryException;
-import com.julien.lotterysystem.common.utils.JacksonUtil;
+
 import com.julien.lotterysystem.entity.dataobject.Activity;
 import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dataobject.ActivityUser;
@@ -28,10 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
-import tools.jackson.databind.ObjectMapper;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,7 +48,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Autowired
     private SqlSessionFactory sqlSessionFactory;
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     // 活动缓存key前缀
     private final String ACTIVITY_PREFIX = "activity_";
@@ -70,8 +69,6 @@ public class ActivityServiceImpl implements ActivityService {
         response.setActivityId(activityId);
         return response;
     }
-
-
 
     /**
      * 校验活动请求参数
@@ -201,10 +198,10 @@ public class ActivityServiceImpl implements ActivityService {
                            activityPrizeDto.setImageUrl(prize.getImageUrl());
                        });
             });
-             // 使用RedisTemplate客户端进行缓存操作
-             redisTemplate.opsForValue().
-                     set(ACTIVITY_PREFIX + detailDto.getActivityId(),
-                     JacksonUtil.serialize(detailDto),CACHE_TIMEOUT);
+             // 使用RedisTemplate客户端进行缓存操作，直接存入对象，由 GenericJackson2JsonRedisSerializer 自动序列化
+             redisTemplate.opsForValue()
+                     .set(ACTIVITY_PREFIX + detailDto.getActivityId(),
+                     detailDto, CACHE_TIMEOUT, TimeUnit.SECONDS);
         } catch (Exception e) {
              log.error("缓存活动详情失败，缓存活动id：{}", detailDto.getActivityId(),e);
              // 缓存失败不应该抛出异常，避免事务回滚
@@ -341,9 +338,9 @@ public class ActivityServiceImpl implements ActivityService {
             return activityDetail;
         }
         // 从Redis获取失败，从数据库查询
-        // TODO : Jackson序列化问题
         activityDetail = getActivityDetailFromDb(activityId);
         // 缓存活动详情到Redis
+        cacheActivity(activityDetail);
         return activityDetail;
     }
 
@@ -353,43 +350,23 @@ public class ActivityServiceImpl implements ActivityService {
      * @return 活动详情
      */
     private ActivityDetailDto getActivityDetailFromCache(Long activityId) {
-        String activityDetailDtoJson = redisTemplate.opsForValue()
-                .get(ACTIVITY_PREFIX + activityId);
-        if (!StringUtils.hasText(activityDetailDtoJson)) {
-            log.info("从Redis获取活动详情失败，key：{}", ACTIVITY_PREFIX + activityId);
-            return null;
-        }
-        // 反序列化并增强错误信息以便排查缓存内容问题
         String key = ACTIVITY_PREFIX + activityId;
         try {
-            return JacksonUtil.deSerialize(activityDetailDtoJson,
-                    ActivityDetailDto.class);
-        } catch (Exception e) {
-            String preview = activityDetailDtoJson.length() > 1000
-                    ? activityDetailDtoJson.substring(0, 1000) + "..."
-                    : activityDetailDtoJson;
-            log.error("从Redis反序列化活动详情失败，key：{}，json preview：{}", key, preview, e);
-            // 尝试处理可能的二次序列化或控制字符问题：
-            ObjectMapper fallbackMapper = new ObjectMapper();
-            try {
-                // 如果缓存是一个被转义的 JSON 字符串（例如 '"{\"a\":1}"'），先反序列化为 String
-                String inner = fallbackMapper.readValue(activityDetailDtoJson, String.class);
-                if (inner != null && inner.trim().length() > 0) {
-                    // 清理不可见控制字符（如 NUL）再解析
-                    String cleaned = inner.replace("\u0000", "");
-                    ActivityDetailDto dto = fallbackMapper.readValue(cleaned, ActivityDetailDto.class);
-                    // 重新缓存正确的对象
-                    try {
-                        redisTemplate.opsForValue().set(key, JacksonUtil.serialize(dto), CACHE_TIMEOUT);
-                    } catch (Exception ex) {
-                        log.warn("重新缓存解析后的活动详情失败，key：{}", key, ex);
-                    }
-                    return dto;
-                }
-            } catch (Exception ignore) {
-                // 忽略，下面删除缓存并回源
+            Object cached = redisTemplate.opsForValue().get(key);
+            if (cached == null) {
+                log.info("从Redis获取活动详情失败，key：{}", key);
+                return null;
             }
-            // 删除坏的缓存，避免重复命中同样的错误
+            // GenericJackson2JsonRedisSerializer 自动反序列化为目标对象
+            if (cached instanceof ActivityDetailDto dto) {
+                return dto;
+            }
+            log.warn("Redis缓存类型不匹配，key：{}，实际类型：{}", key, cached.getClass().getName());
+            redisTemplate.delete(key);
+            return null;
+        } catch (Exception e) {
+            log.error("从Redis获取活动详情异常，key：{}", key, e);
+            // 删除坏缓存，避免重复命中同样的错误
             try {
                 redisTemplate.delete(key);
             } catch (Exception ex) {
