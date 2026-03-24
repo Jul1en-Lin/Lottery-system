@@ -338,6 +338,7 @@ public class ActivityServiceImpl implements ActivityService {
             return activityDetail;
         }
         // 从Redis获取失败，从数据库查询
+        log.info("从Redis获取活动详情失败,查询数据库，activityId：{}", activityId);
         activityDetail = getActivityDetailFromDb(activityId);
         // 缓存活动详情到Redis
         cacheActivity(activityDetail);
