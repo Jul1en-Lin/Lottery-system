@@ -22,6 +22,16 @@ spring:
     redis:
       host: localhost
       port: 8888 #监听6379端口
+  rabbitmq:
+    host: localhost
+    port: 9999 #监听5672端口
+    username: admin
+    password: admin
+    listener:
+      simple:
+        retry:
+          enabled: true # 开启重试机制
+          max-retries: 5 # 最大重试次数
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true #配置驼峰自动转换
