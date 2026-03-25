@@ -11,7 +11,6 @@ public class RabbitConfig {
     public static final String QUEUE_NAME = "LotteryQueue";
     public static final String EXCHANGE_NAME = "LotteryExchange";
     public static final String ROUTING_KEY = "LotteryRouting";
-
     public static final String DLX_QUEUE_NAME = "DlxDirectQueue";
     public static final String DLX_EXCHANGE_NAME = "DlxDirectExchange";
     public static final String DLX_ROUTING = "DlxDirectRouting";

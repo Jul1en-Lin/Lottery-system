@@ -1,0 +1,74 @@
+[
+  {
+    "id": "TASK_1",
+    "priority": "LOW",
+    "tags": [],
+    "title": "拦截器配置",
+    "description": "恢复WebConfig",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 3,
+        "day": 25
+      },
+      "time": {
+        "hour": 17,
+        "minute": 37,
+        "second": 52,
+        "nano": 71191100
+      }
+    },
+    "isImported": false
+  },
+  {
+    "id": "TASK_3",
+    "priority": "LOW",
+    "tags": [],
+    "title": "实现自定义响应体",
+    "description": "TODO: 实现自定义响应体",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 3,
+        "day": 25
+      },
+      "time": {
+        "hour": 17,
+        "minute": 38,
+        "second": 43,
+        "nano": 621988300
+      }
+    },
+    "isImported": true,
+    "fileName": "ResponseAdvice.java",
+    "lineNumber": 29,
+    "fullCommentText": "TODO 实现自定义响应体"
+  },
+  {
+    "id": "TASK_6",
+    "priority": "LOW",
+    "tags": [],
+    "title": "Jackson序列化工具",
+    "description": "TODO: ：尝试Hutool的Json工具",
+    "status": "TODO",
+    "date": {
+      "date": {
+        "year": 2026,
+        "month": 3,
+        "day": 25
+      },
+      "time": {
+        "hour": 17,
+        "minute": 40,
+        "second": 24,
+        "nano": 874450600
+      }
+    },
+    "isImported": true,
+    "fileName": "JacksonUtil.java",
+    "lineNumber": 12,
+    "fullCommentText": "TODO：尝试Hutool的Json工具"
+  }
+]

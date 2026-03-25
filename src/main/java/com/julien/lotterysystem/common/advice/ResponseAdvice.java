@@ -26,7 +26,6 @@ public class ResponseAdvice implements ResponseBodyAdvice {
         return true;
     }
 
-    // TODO: 实现自定义响应体
     @Override
     public @Nullable Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType, MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
         if (body instanceof Result<?>){

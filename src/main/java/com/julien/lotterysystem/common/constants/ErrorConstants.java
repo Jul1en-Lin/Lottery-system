@@ -14,6 +14,7 @@ public interface ErrorConstants {
     Integer UPLOAD_PICTURE_FAILED = 200;
     // 图片路径不能为空
     Integer PICTURE_PATH_EMPTY = 201;
+
     ErrorCode PRIZE_COUNT_NOT_MATCH = new ErrorCode(202,"奖品数量与人员数量不匹配");
     ErrorCode PRIZE_EMPTY = new ErrorCode(203,"奖品为空");
     ErrorCode USER_EMPTY = new ErrorCode(204,"用户为空");
@@ -32,4 +33,10 @@ public interface ErrorConstants {
     ErrorCode ACTIVITY_NOT_EXIST = new ErrorCode(500,"活动不存在");
     ErrorCode ACTIVITY_PRIZE_NOT_EXIST = new ErrorCode(501,"活动关联奖品不存在");
     ErrorCode ACTIVITY_USER_NOT_EXIST = new ErrorCode(502,"活动关联人员不存在");
+    ErrorCode ACTIVITY_OR_PRISE_EMPTY = new ErrorCode(503,"活动或奖品不存在，无法抽奖");
+    ErrorCode ACTIVITY_STATUS_ERROR = new ErrorCode(504,"活动状态错误或不存在，无法抽奖");
+    ErrorCode PRIZE_STATUS_ERROR = new ErrorCode(505,"奖品状态错误或不存在，无法抽奖");
+    ErrorCode WINNERS_OR_PRIZES_AMOUNT_MISMATCH_ERROR = new ErrorCode(506,"中奖者数量与奖品数量不匹配，无法抽奖");
+    ErrorCode OPERATOR_MAP_IS_NULL = new ErrorCode(507,"操作器映射为空");
+    ErrorCode CONVERT_STATUS_FAILED = new ErrorCode(508,"状态扭转失败");
 }
