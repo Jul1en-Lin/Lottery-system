@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.julien.lotterysystem.entity.dataobject.Activity;
 import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
 import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
+import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
 import com.julien.lotterysystem.entity.response.ActivityListResponse;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
@@ -39,4 +40,9 @@ public interface ActivityService {
      * @return
      */
     ActivityDetailDto getActivityDetail(Long activityId);
+
+    /**
+     * 将扭转状态后的活动数据更新缓存到 Redis 中
+     */
+    void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO);
 }

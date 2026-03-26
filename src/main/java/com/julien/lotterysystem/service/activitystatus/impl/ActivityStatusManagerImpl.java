@@ -49,7 +49,7 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
 
         if (isStatusChanged) {
             // 更新缓存活动状态
-            activityService.cacheActivity(activityService.getActivityDetail(activityStatusDTO.getActivityId()));
+            activityService.cacheActivityStatus(activityStatusDTO);
         }
     }
 

@@ -17,6 +17,7 @@ import com.julien.lotterysystem.entity.dataobject.Prize;
 import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.dto.ActivityPrizeDto;
 import com.julien.lotterysystem.entity.dto.ActivityUserDto;
+import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.entity.request.CreateActivityRequest;
 import com.julien.lotterysystem.entity.response.ActivityListResponse;
 import com.julien.lotterysystem.entity.response.CreateActivityResponse;
@@ -177,8 +178,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public void cacheActivity(ActivityDetailDto detailDto) {
         if (detailDto == null || detailDto.getActivityId() == null) {
-            log.warn("缓存活动详情失败，缓存活动id为空");
-            throw new LotteryException(ErrorConstants.CACHE_ID_EMPTY);
+            log.error("缓存活动详情失败，缓存活动id为空");
+            return;
         }
         // 完善detailDto（添加奖品url和price），便于后续直接取出奖品信息
         try {
@@ -202,8 +203,11 @@ public class ActivityServiceImpl implements ActivityService {
              redisTemplate.opsForValue()
                      .set(ACTIVITY_PREFIX + detailDto.getActivityId(),
                      detailDto, CACHE_TIMEOUT, TimeUnit.SECONDS);
-        } catch (Exception e) {
+        } catch (LotteryException e) {
              log.error("缓存活动详情失败，缓存活动id：{}", detailDto.getActivityId(),e);
+             // 缓存失败不应该抛出异常，避免事务回滚
+        } catch (Exception e) {
+             log.error("缓存活动详情失败", e);
              // 缓存失败不应该抛出异常，避免事务回滚
         }
     }
@@ -345,6 +349,8 @@ public class ActivityServiceImpl implements ActivityService {
         return activityDetail;
     }
 
+
+
     /**
      * 从 Redis 获取活动详情
      * @param activityId 活动id
@@ -425,4 +431,11 @@ public class ActivityServiceImpl implements ActivityService {
         return detailDto;
     }
 
+    /**
+     * 将扭转状态后的活动数据更新缓存到 Redis 中
+     */
+    @Override
+    public void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO) {
+
+    }
 }
