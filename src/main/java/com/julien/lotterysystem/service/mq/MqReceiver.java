@@ -53,6 +53,8 @@ public class MqReceiver {
             // 重要！！
             convertStatus(param);
 
+
+
         } catch (LotteryException e) {
             log.error("处理MQ消息异常:{},{}",e.getCode(),e.getMessage(),e);
         } catch (Exception e) {

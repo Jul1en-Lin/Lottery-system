@@ -9,6 +9,7 @@ import com.julien.lotterysystem.service.activitystatus.operator.AbstractActivity
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
     private ActivityService activityService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void handlerEvent(ConvertActivityStatusDTO activityStatusDTO) {
         if (operatorMap == null) {
             log.error("operatorMap 为空！");
@@ -43,7 +45,9 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
         Map<String, AbstractActivityOperator> currentMap = new HashMap<>(operatorMap);
         // 安排责任链
         Boolean isStatusChanged = false;
+        // 先扭转奖品和人员状态
         isStatusChanged = processConvertStatus(activityStatusDTO,currentMap,0);
+        // 后再扭转活动状态
         isStatusChanged = processConvertStatus(activityStatusDTO,currentMap,1)
                                     || isStatusChanged;
 

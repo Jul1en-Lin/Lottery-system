@@ -8,7 +8,6 @@ import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
  */
 public abstract class AbstractActivityOperator {
     /**
-     * 操作器执行顺序
      * 用于确定操作器在责任链中的执行顺序
      */
     public abstract int sequence();
@@ -18,8 +17,8 @@ public abstract class AbstractActivityOperator {
      */
     public abstract boolean isNeedConvert(ConvertActivityStatusDTO activityStatusDTO);
 
-
     /**
+     * 若判断需要则进行扭转
      * 状态扭转操作
      */
     public abstract Boolean convert(ConvertActivityStatusDTO activityStatusDTO);

@@ -26,6 +26,6 @@ public class ActivityUser {
     private Long userId;
     /** 用户名 */
     private String userName;
-    /** 用户状态——初始化/已被抽取 */
+    /** 用户状态: 初始化 / 已被抽取 */
     private String status;
 }

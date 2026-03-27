@@ -1,4 +1,4 @@
-package com.julien.lotterysystem.PrizeService;
+package com.julien.lotterysystem.service.prizeService;
 
 import com.julien.lotterysystem.common.enums.PrizeTiersEnum;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
