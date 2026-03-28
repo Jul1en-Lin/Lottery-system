@@ -33,8 +33,6 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
     private Map<String, AbstractActivityOperator> operatorMap;
     @Autowired
     private ActivityService activityService;
-    @Autowired
-    private ActivityStatusManager activityStatusManager;
 
     @Override
     @Transactional(rollbackFor = Exception.class)

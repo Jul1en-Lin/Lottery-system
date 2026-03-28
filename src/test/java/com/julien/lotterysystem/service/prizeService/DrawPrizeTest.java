@@ -47,15 +47,15 @@ public class DrawPrizeTest {
     @Test
     void saveWinningRecord_SingleWinner_Success() {
         DrawPrizeRequest request = new DrawPrizeRequest();
-        request.setActivityId(1L);
+        request.setActivityId(21L);
         request.setPrizeId(1L);
         request.setWinningTime(new Date());
-        request.setPrizeTiers(PrizeTiersEnum.TIER_1);
+        request.setPrizeTiers(PrizeTiersEnum.TIER_2);
 
         List<DrawPrizeRequest.Winner> winnerList = new ArrayList<>();
         DrawPrizeRequest.Winner winner = new DrawPrizeRequest.Winner();
         winner.setUserId(1L);
-        winner.setUserName("张三");
+        winner.setUserName("hello");
         winnerList.add(winner);
         request.setWinnerList(winnerList);
 
@@ -67,10 +67,10 @@ public class DrawPrizeTest {
 
         // 验证中奖记录字段映射正确
         WinningRecord record = result.get(0);
-        Assertions.assertEquals(1L, record.getActivityId());
+        Assertions.assertEquals(21L, record.getActivityId());
         Assertions.assertEquals(1L, record.getPrizeId());
         Assertions.assertEquals(1L, record.getWinnerId());
-        Assertions.assertEquals("张三", record.getWinnerName());
+        Assertions.assertEquals("hello", record.getWinnerName());
         Assertions.assertNotNull(record.getWinningTime());
 
         log.info("保存单条中奖记录成功，记录：{}", record);
