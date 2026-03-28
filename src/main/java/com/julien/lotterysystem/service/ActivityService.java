@@ -22,10 +22,18 @@ public interface ActivityService {
     CreateActivityResponse create(@Valid CreateActivityRequest request);
 
     /**
+     * 创建活动模块的创建活动缓存
      * 缓存活动详情到 Redis 中
      * @param detailDto 活动详情
      */
     void cacheActivity(ActivityDetailDto detailDto);
+
+    /**
+     * 抽奖模块的更新缓存
+     * 将扭转状态后的活动数据更新缓存到 Redis 中
+      * @param activityStatusDTO 状态扭转数据
+     */
+    void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO);
 
     /**
      * 翻页查询活动列表
@@ -41,8 +49,5 @@ public interface ActivityService {
      */
     ActivityDetailDto getActivityDetail(Long activityId);
 
-    /**
-     * 将扭转状态后的活动数据更新缓存到 Redis 中
-     */
-    void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO);
+
 }

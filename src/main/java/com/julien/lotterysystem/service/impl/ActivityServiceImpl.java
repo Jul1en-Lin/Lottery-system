@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -177,16 +178,29 @@ public class ActivityServiceImpl implements ActivityService {
      */
     @Override
     public void cacheActivity(ActivityDetailDto detailDto) {
-        if (detailDto == null || detailDto.getActivityId() == null) {
+        if (null == detailDto || null == detailDto.getActivityId()) {
             log.error("缓存活动详情失败，缓存活动id为空");
             return;
         }
-        // 完善detailDto（添加奖品url和price），便于后续直接取出奖品信息
+        // 完善detailDto（添加奖品图片地址和价格），便于后续直接取出奖品信息
         try {
+            // 查奖品图片地址和价格是否已存在,存在则无需完善DTO，直接缓存
+            List<ActivityPrizeDto> activityPrizeList = detailDto.getActivityPrizeList();
+            boolean allPrizeInfoExists = activityPrizeList != null && activityPrizeList.stream()
+                    .allMatch(activityPrizeDto ->
+                            StringUtils.hasText(activityPrizeDto.getImageUrl())
+                            && activityPrizeDto.getPrice() != null);
+            if (allPrizeInfoExists) {
+                // 奖品图片和价格均已存在，直接缓存
+                redisTemplate.opsForValue()
+                        .set(ACTIVITY_PREFIX + detailDto.getActivityId(),
+                        detailDto, CACHE_TIMEOUT, TimeUnit.SECONDS);
+                return;
+            }
             // 查询活动奖品表
             List<ActivityPrize> activityPrize = activityPrizeMapper.selectList(new LambdaQueryWrapper<ActivityPrize>()
                     .eq(ActivityPrize::getActivityId, detailDto.getActivityId()));
-            // 根据活动关联奖品id和活动id查询奖品列表的价格
+            // 根据和活动id查询活动关联奖品ids
             List<Long> prizeIdsList = activityPrize.stream()
                    .map(ActivityPrize::getPrizeId)
                    .toList();
@@ -415,11 +429,11 @@ public class ActivityServiceImpl implements ActivityService {
         ActivityDetailDto detailDto = converterActivityDetailDto(activity,
                         activityUser, activityPrize);
 
-        // 根据活动关联奖品id和活动id查询奖品列表的价格
+        // 根据和活动id查询活动关联奖品ids
         List<Long> prizeIdsList = activityPrize.stream()
                .map(ActivityPrize::getPrizeId)
                .toList();
-        // 赋值奖品价格和图片地址
+        // 查询每个奖品的价格和图片地址并赋值活动详情DTO
         prizeIdsList.forEach(prizeId -> {
             Prize prize = prizeMapper.selectById(prizeId);
             detailDto.getActivityPrizeList()
@@ -431,11 +445,21 @@ public class ActivityServiceImpl implements ActivityService {
         return detailDto;
     }
 
-    /**
-     * 将扭转状态后的活动数据更新缓存到 Redis 中
-     */
     @Override
     public void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO) {
-
+        Long activityId = activityStatusDTO.getActivityId();
+        if (null == activityId) {
+            log.warn("缓存活动状态失败，活动ID为空");
+            return;
+        }
+        try {
+            ActivityDetailDto activityDetailDto = getActivityDetailFromDb(activityId);
+            cacheActivity(activityDetailDto);
+        } catch (LotteryException e) {
+            log.error("缓存活动状态失败，活动ID：{},原因:{}",
+                    activityStatusDTO.getActivityId(), e.getErrMsg());
+        } catch (Exception e) {
+            log.error("缓存活动状态失败，活动ID：{}", activityStatusDTO.getActivityId(),e);
+        }
     }
 }

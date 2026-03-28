@@ -48,7 +48,7 @@ public class MqReceiver {
                 return;
             }
 
-            // 状态扭转处理（活动状态、奖品状态、中奖者状态）
+            // 状态扭转处理（活动状态、奖品状态、中奖者状态） + 缓存处理
             // 设计模式：责任链 + 策略模式
             // 重要！！
             convertStatus(param);

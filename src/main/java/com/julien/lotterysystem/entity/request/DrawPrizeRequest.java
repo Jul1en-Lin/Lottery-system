@@ -41,7 +41,7 @@ public class DrawPrizeRequest {
     /**
      * 中奖者列表
      */
-    @NotEmpty(message = "中奖者列表不能为空")
+    @NotNull(message = "中奖者列表不能为空")
     private List<@Valid Winner> winnerList;
 
     @Data

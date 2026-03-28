@@ -79,7 +79,7 @@ public class ActivityOperatorTest {
         // 准备数据 - 确保 activity_id=21 存在
         ConvertActivityStatusDTO dto = new ConvertActivityStatusDTO();
         dto.setActivityId(21L);
-        dto.setUserIds(List.of(4L,6L,7L));
+        dto.setUserIds(List.of(6L,7L));
         dto.setTargetActivityStatus(ActivityStatusEnum.END);
 
         Boolean result = activityOperator.isNeedConvert(dto);

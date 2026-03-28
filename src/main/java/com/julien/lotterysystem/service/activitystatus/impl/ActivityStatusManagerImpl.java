@@ -33,6 +33,8 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
     private Map<String, AbstractActivityOperator> operatorMap;
     @Autowired
     private ActivityService activityService;
+    @Autowired
+    private ActivityStatusManager activityStatusManager;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -83,10 +85,13 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
                 log.info("{}状态扭转失败", operator.getClass().getName());
                 throw new LotteryException(ErrorConstants.CONVERT_STATUS_FAILED);
             }
-            // 删除已执行的操作器
+            // 删除已执行的操作器，避免重复执行，提升效率
+            // 可删可不删
             iterator.remove();
             update = true;
         }
         return update;
     }
+
+
 }
