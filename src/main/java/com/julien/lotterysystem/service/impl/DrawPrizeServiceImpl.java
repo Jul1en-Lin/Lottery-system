@@ -1,25 +1,22 @@
 package com.julien.lotterysystem.service.impl;
 
+import com.baomidou.mybatisplus.core.batch.MybatisBatch;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.enums.ActivityStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
-import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JacksonUtil;
-import com.julien.lotterysystem.entity.dataobject.Activity;
-import com.julien.lotterysystem.entity.dataobject.ActivityPrize;
-import com.julien.lotterysystem.entity.errorcode.ErrorCode;
+import com.julien.lotterysystem.entity.dataobject.*;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
-import com.julien.lotterysystem.mapper.ActivityMapper;
-import com.julien.lotterysystem.mapper.ActivityPrizeMapper;
-import com.julien.lotterysystem.mapper.ActivityUserMapper;
+import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.DrawPrizeService;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,6 +35,14 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     private ActivityPrizeMapper activityPrizeMapper;
     @Autowired
     private ActivityUserMapper activityUserMapper;
+    @Autowired
+    private PrizeMapper prizeMapper;
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
+    private WinningRecordMapper winningRecordMapper;
+    @Autowired
+    private SqlSessionFactory sqlSessionFactory;
 
     /**
      * 异步抽奖接口，无需返回结果
@@ -90,5 +95,43 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public List<WinningRecord> saveWinningRecord(DrawPrizeRequest param) {
+        log.info("保存中奖记录，参数：{}", JacksonUtil.serialize(param));
+        Activity activity = activityMapper.selectById(param.getActivityId());
+        Prize prize = prizeMapper.selectById(param.getPrizeId());
+        ActivityPrize activityPrize = activityPrizeMapper.selectOne(new LambdaQueryWrapper<ActivityPrize>()
+                .eq(ActivityPrize::getPrizeId, param.getPrizeId())
+                .eq(ActivityPrize::getActivityId, param.getActivityId()));
+        List<Long> winnerIds = param.getWinnerList().stream()
+                .map(DrawPrizeRequest.Winner::getUserId)
+                .toList();
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
+                .in(User::getId, winnerIds));
+        List<WinningRecord> winningRecords = users.stream()
+                .map(user -> {
+                    WinningRecord winningRecord = new WinningRecord();
+                    // 活动模块
+                    winningRecord.setActivityId(param.getActivityId());
+                    winningRecord.setActivityName(activity.getActivityName());
+                    // 奖品模块
+                    winningRecord.setPrizeId(activityPrize.getPrizeId());
+                    winningRecord.setPrizeName(prize.getName());
+                    winningRecord.setPrizeTier(activityPrize.getPrizeTiers());
+                    // 中奖者模块
+                    winningRecord.setWinnerId(user.getId());
+                    winningRecord.setWinnerName(user.getUserName());
+                    winningRecord.setWinnerEmail(user.getEmail());
+                    winningRecord.setWinnerPhoneNumber(user.getPhoneNumber());
+                    winningRecord.setWinningTime(param.getWinningTime());
+                    return winningRecord;
+                }).toList();
+        // 批量插入
+        MybatisBatch<WinningRecord> userBatch = new MybatisBatch<>(sqlSessionFactory, winningRecords);
+        MybatisBatch.Method<WinningRecord> userMethod = new MybatisBatch.Method<>(WinningRecordMapper.class);
+        userBatch.execute(userMethod.insert());
+        return winningRecords;
     }
 }

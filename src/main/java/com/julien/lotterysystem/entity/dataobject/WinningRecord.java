@@ -1,11 +1,14 @@
 package com.julien.lotterysystem.entity.dataobject;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.julien.lotterysystem.mapper.handler.EncryptTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * 中奖记录
@@ -55,8 +58,9 @@ public class WinningRecord {
     private String winnerEmail;
 
     /** 中奖用户手机号 */
-    private String winnerPhoneNumber;
+    @TableField(typeHandler = EncryptTypeHandler.class)
+    private Encrypt winnerPhoneNumber;
 
     /** 中奖时间 */
-    private LocalDateTime winningTime;
+    private Date winningTime;
 }

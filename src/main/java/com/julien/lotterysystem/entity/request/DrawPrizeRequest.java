@@ -14,7 +14,7 @@ import java.util.List;
 
 @Data
 public class DrawPrizeRequest {
-     /**
+    /**
      * 活动id
      */
     @NotNull(message = "活动id不能为空")

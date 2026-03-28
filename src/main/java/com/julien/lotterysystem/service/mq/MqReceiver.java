@@ -53,6 +53,9 @@ public class MqReceiver {
             // 重要！！
             convertStatus(param);
 
+            // 保存中奖者信息，入库WinningRecord
+            drawPrizeService.saveWinningRecord(param);
+            // 缓存中奖信息
 
 
         } catch (LotteryException e) {
