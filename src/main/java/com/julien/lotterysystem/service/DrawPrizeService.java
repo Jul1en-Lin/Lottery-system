@@ -21,4 +21,14 @@ public interface DrawPrizeService {
      * 保存中奖记录
      */
     List<WinningRecord> saveWinningRecord(DrawPrizeRequest param);
+
+    /**
+     * 获取特定活动的中奖公示名单（所有中奖记录列表）
+     */
+    List<WinningRecord> getWinningRecord(Long activityId);
+
+    /**
+     * 获取特定活动的特定奖品的中奖者列表
+     */
+    List<WinningRecord> getWinningRecord(Long activityId, Long prizeId);
 }

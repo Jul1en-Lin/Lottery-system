@@ -5,6 +5,7 @@ import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
 import com.julien.lotterysystem.common.enums.UserStatusEnum;
 import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JacksonUtil;
+import com.julien.lotterysystem.entity.dataobject.WinningRecord;
 import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
 import com.julien.lotterysystem.service.ActivityService;
@@ -16,6 +17,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -48,15 +50,13 @@ public class MqReceiver {
                 return;
             }
 
-            // 状态扭转处理（活动状态、奖品状态、中奖者状态） + 缓存处理
-            // 设计模式：责任链 + 策略模式
             // 重要！！
+            // 状态扭转处理（活动状态、奖品状态、中奖者状态）
+            // 设计模式：责任链 + 策略模式
             convertStatus(param);
-
-            // 保存中奖者信息，入库WinningRecord
-            drawPrizeService.saveWinningRecord(param);
-            // 缓存中奖信息
-
+            // 保存中奖者信息 + 缓存中奖信息
+            List<WinningRecord> winningRecords = drawPrizeService.saveWinningRecord(param);
+            // 异步处理中奖信息
 
         } catch (LotteryException e) {
             log.error("处理MQ消息异常:{},{}",e.getCode(),e.getMessage(),e);

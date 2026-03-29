@@ -5,20 +5,27 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.enums.ActivityStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
+import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JacksonUtil;
 import com.julien.lotterysystem.entity.dataobject.*;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
 import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.DrawPrizeService;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static com.julien.lotterysystem.common.config.RabbitConfig.EXCHANGE_NAME;
 import static com.julien.lotterysystem.common.config.RabbitConfig.ROUTING_KEY;
@@ -43,6 +50,13 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     private WinningRecordMapper winningRecordMapper;
     @Autowired
     private SqlSessionFactory sqlSessionFactory;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    // 缓存超时时间，单位：秒
+    private final Long CACHE_TIMEOUT = 60 * 60L;
+    // 中奖信息缓存key前缀
+    private final String WINNING_RECORD_PREFIX = "winning_record_";
 
     /**
      * 异步抽奖接口，无需返回结果
@@ -99,6 +113,10 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
 
     @Override
     public List<WinningRecord> saveWinningRecord(DrawPrizeRequest param) {
+        if (null == param) {
+            log.error("保存中奖信息参数不能为空");
+            throw new LotteryException(ErrorConstants.PARAMETER_EMPTY);
+        }
         log.info("保存中奖记录，参数：{}", JacksonUtil.serialize(param));
         Activity activity = activityMapper.selectById(param.getActivityId());
         Prize prize = prizeMapper.selectById(param.getPrizeId());
@@ -132,6 +150,70 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         MybatisBatch<WinningRecord> userBatch = new MybatisBatch<>(sqlSessionFactory, winningRecords);
         MybatisBatch.Method<WinningRecord> userMethod = new MybatisBatch.Method<>(WinningRecordMapper.class);
         userBatch.execute(userMethod.insert());
+
+        // 缓存中奖信息（分奖品维度和活动维度）
+        // 1. 缓存奖品维度的中奖信息（key：WinningRecord_activityId_prizeId）
+        String key1 = WINNING_RECORD_PREFIX + param.getActivityId() + "_" + param.getPrizeId();
+        cacheWinningRecords(key1, winningRecords, CACHE_TIMEOUT);
+        // 只有活动结束时才缓存活动维度的中奖信息
+        if (activity.getStatus().equalsIgnoreCase(ActivityStatusEnum.END.name())) {
+            // 2. 缓存活动维度的中奖信息（key：WinningRecord_activityId）
+            // 获取活动维度的全量中奖信息
+            List<WinningRecord> allWinningRecords = winningRecordMapper.selectList(new LambdaQueryWrapper<WinningRecord>()
+                    .eq(WinningRecord::getActivityId, param.getActivityId()));
+            String key2 = WINNING_RECORD_PREFIX + param.getActivityId();
+            cacheWinningRecords(key2, allWinningRecords, CACHE_TIMEOUT);
+        }
+
         return winningRecords;
+    }
+
+    /**
+     * 缓存中奖信息
+     * @param winningRecords 中奖信息列表
+     */
+    private void cacheWinningRecords(String key, List<WinningRecord> winningRecords, Long timeout) {
+        if (!StringUtils.hasText(key) || CollectionUtils.isEmpty(winningRecords)) {
+            log.warn("缓存中奖信息参数错误，key：{}，winningRecords：{}", key, winningRecords);
+            return;
+        }
+        try {
+            log.info("缓存中奖信息，key：{}，winningRecords：{}", key, winningRecords);
+            redisTemplate.opsForValue().set(key, winningRecords, timeout, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("缓存中奖信息失败，key：{}", key, e);
+        }
+    }
+
+    @Override
+    public List<WinningRecord> getWinningRecord(Long activityId) {
+        if (null == activityId) {
+            log.warn("获取缓存中奖信息活动ID参数为空");
+            return null;
+        }
+        String key = WINNING_RECORD_PREFIX + activityId;
+        try {
+            log.info("获取缓存中奖信息，key：{}", key);
+            return (List<WinningRecord>) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("获取缓存中奖信息失败，key：{}", key, e);
+            throw new LotteryException(ErrorConstants.GET_CACHE_ERROR);
+        }
+    }
+
+    @Override
+    public List<WinningRecord> getWinningRecord(Long activityId, Long prizeId) {
+        if (null == activityId || null == prizeId) {
+            log.warn("获取缓存中奖信息活动ID或奖品ID参数为空");
+            return null;
+        }
+        String key = WINNING_RECORD_PREFIX + activityId + "_" + prizeId;
+        try {
+            log.info("获取缓存中奖信息，key：{}", key);
+            return (List<WinningRecord>) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("获取缓存中奖信息失败，key：{}", key, e);
+            throw new LotteryException(ErrorConstants.GET_CACHE_ERROR);
+        }
     }
 }

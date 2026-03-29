@@ -39,4 +39,6 @@ public interface ErrorConstants {
     ErrorCode WINNERS_OR_PRIZES_AMOUNT_MISMATCH_ERROR = new ErrorCode(506,"中奖者数量与奖品数量不匹配，无法抽奖");
     ErrorCode OPERATOR_MAP_IS_NULL = new ErrorCode(507,"操作器映射为空");
     ErrorCode CONVERT_STATUS_FAILED = new ErrorCode(508,"状态扭转失败");
+    ErrorCode PARAMETER_EMPTY = new ErrorCode(509,"中奖请求参数为空");
+    ErrorCode GET_CACHE_ERROR = new ErrorCode(510,"获取缓存中奖信息失败");
 }

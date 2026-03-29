@@ -85,21 +85,21 @@ public class DrawPrizeTest {
     @Test
     void saveWinningRecord_MultipleWinners_Success() {
         DrawPrizeRequest request = new DrawPrizeRequest();
-        request.setActivityId(1L);
+        request.setActivityId(21L);
         request.setPrizeId(1L);
         request.setWinningTime(new Date());
-        request.setPrizeTiers(PrizeTiersEnum.TIER_1);
+        request.setPrizeTiers(PrizeTiersEnum.TIER_2);
 
         List<DrawPrizeRequest.Winner> winnerList = new ArrayList<>();
 
         DrawPrizeRequest.Winner winner1 = new DrawPrizeRequest.Winner();
-        winner1.setUserId(1L);
-        winner1.setUserName("张三");
+        winner1.setUserId(4L);
+        winner1.setUserName("test");
         winnerList.add(winner1);
 
         DrawPrizeRequest.Winner winner2 = new DrawPrizeRequest.Winner();
-        winner2.setUserId(2L);
-        winner2.setUserName("李四");
+        winner2.setUserId(6L);
+        winner2.setUserName("111");
         winnerList.add(winner2);
 
         request.setWinnerList(winnerList);
@@ -111,15 +111,15 @@ public class DrawPrizeTest {
         Assertions.assertEquals(2, result.size());
 
         // 验证每条中奖记录的中奖者信息独立
-        Assertions.assertEquals(1L, result.get(0).getWinnerId());
-        Assertions.assertEquals("张三", result.get(0).getWinnerName());
-        Assertions.assertEquals(2L, result.get(1).getWinnerId());
-        Assertions.assertEquals("李四", result.get(1).getWinnerName());
+        Assertions.assertEquals(4L, result.get(0).getWinnerId());
+        Assertions.assertEquals("test", result.get(0).getWinnerName());
+        Assertions.assertEquals(6L, result.get(1).getWinnerId());
+        Assertions.assertEquals("111", result.get(1).getWinnerName());
 
         // 验证奖品和活动信息一致
-        Assertions.assertEquals(1L, result.get(0).getActivityId());
+        Assertions.assertEquals(21L, result.get(0).getActivityId());
         Assertions.assertEquals(1L, result.get(0).getPrizeId());
-        Assertions.assertEquals(1L, result.get(1).getActivityId());
+        Assertions.assertEquals(21L, result.get(1).getActivityId());
         Assertions.assertEquals(1L, result.get(1).getPrizeId());
 
         log.info("批量保存中奖记录成功，记录列表：{}", result);
