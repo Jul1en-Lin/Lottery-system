@@ -57,6 +57,11 @@ public class MqReceiver {
         // 提取消息体
         String messageBody = message.get("messageBody");
         DrawPrizeRequest param = JacksonUtil.deSerialize(messageBody, DrawPrizeRequest.class);
+        if (param == null) {
+            log.error("消息体反序列化失败,message:{}", messageBody);
+            return;
+        }
+        log.info("处理抽奖消息,param:{}", param);
         // 处理抽奖流程
 
         try {
@@ -67,7 +72,7 @@ public class MqReceiver {
             //      1. param1请求已经将状态扭转完成
             //      2. param2请求过来时校验失败，并抛出异常，被外层捕获，跳转到回滚操作
             // 因此，这里选择不抛出异常
-            if (param == null || !drawPrizeService.checkDrawPrizeRequest(param)) {
+            if (!drawPrizeService.checkDrawPrizeRequest(param)) {
                 log.error("抽奖请求校验失败,param:{}", JacksonUtil.serialize(param));
                 return;
             }
@@ -155,11 +160,7 @@ public class MqReceiver {
     private void winnerRollback(DrawPrizeRequest param) {
         winningRecordMapper.delete(new LambdaQueryWrapper<WinningRecord>()
                 .eq(WinningRecord::getActivityId, param.getActivityId())
-                .eq(WinningRecord::getPrizeId, param.getPrizeId())
-                .in(WinningRecord::getWinnerId, param.getWinnerList()
-                        .stream()
-                        .map(DrawPrizeRequest.Winner::getUserId)
-                        .toList()));
+                .eq(WinningRecord::getPrizeId, param.getPrizeId()));
     }
 
     /**

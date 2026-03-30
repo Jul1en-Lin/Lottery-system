@@ -80,34 +80,48 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         // 查库
         Activity activity = activityMapper.selectOne(new LambdaQueryWrapper<Activity>()
                 .eq(Activity::getId, request.getActivityId()));
-        ActivityPrize activityPrize = activityPrizeMapper.selectById(new LambdaQueryWrapper<ActivityPrize>()
-                .eq(ActivityPrize::getId, request.getPrizeId())
+        ActivityPrize activityPrize = activityPrizeMapper.selectOne(new LambdaQueryWrapper<ActivityPrize>()
+                .eq(ActivityPrize::getPrizeId, request.getPrizeId())
                 .eq(ActivityPrize::getActivityId, request.getActivityId()));
+        List<Long> winnerIds = request.getWinnerList().stream()
+                .map(DrawPrizeRequest.Winner::getUserId)
+                .toList();
+        Long count = activityUserMapper.selectCount(new LambdaQueryWrapper<ActivityUser>()
+                .eq(ActivityUser::getActivityId, request.getActivityId())
+                .in(ActivityUser::getUserId, winnerIds));
+        // 检查活动人员是否存在
+        if (count != winnerIds.size()) {
+            log.warn(ErrorConstants.WINNERS_EMPTY.getErrMeg());
+            // throw new LotteryException(ErrorConstants.WINNERS_EMPTY);
+            return false;
+        }
         // 判断活动或奖品是否存在
         if (activity == null || activityPrize == null) {
-            log.info(ErrorConstants.ACTIVITY_OR_PRISE_EMPTY.getErrMeg());
+            log.warn(ErrorConstants.ACTIVITY_OR_PRISE_EMPTY.getErrMeg());
             // throw new LotteryException(ErrorConstants.ACTIVITY_OR_PRISE_EMPTY);
             return false;
         }
         // 检查活动状态
         if (activity.getStatus().equalsIgnoreCase(ActivityStatusEnum.END.name())) {
-            log.info(ErrorConstants.ACTIVITY_STATUS_ERROR.getErrMeg());
+            log.warn(ErrorConstants.ACTIVITY_STATUS_ERROR.getErrMeg());
             // throw new LotteryException(ErrorConstants.ACTIVITY_STATUS_ERROR);
             return false;
         }
         // 检查奖品状态
         if (activityPrize.getStatus().equalsIgnoreCase(PrizeStatusEnum.COMPLETED.name())) {
-            log.info(ErrorConstants.PRIZE_STATUS_ERROR.getErrMeg());
+            log.warn(ErrorConstants.PRIZE_STATUS_ERROR.getErrMeg());
             // throw new LotteryException(ErrorConstants.PRIZE_STATUS_ERROR);
             return false;
         }
         // 检查奖品数量与中奖者列表数量是否一致
         if (request.getWinnerList().isEmpty()
-                || request.getWinnerList().size() != activityPrize.getPrizeAmount()) {
-            log.info(ErrorConstants.WINNERS_OR_PRIZES_AMOUNT_MISMATCH_ERROR.getErrMeg());
+                || request.getWinnerList().size() > activityPrize.getPrizeAmount()) {
+            log.warn(ErrorConstants.WINNERS_OR_PRIZES_AMOUNT_MISMATCH_ERROR.getErrMeg());
             // throw new LotteryException(ErrorConstants.WINNERS_OR_PRIZES_AMOUNT_MISMATCH_ERROR);
             return false;
         }
+
+
         return true;
     }
 

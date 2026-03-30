@@ -24,14 +24,14 @@ public class DrawPrizeTest {
     @Test
     void drawPrize() {
         DrawPrizeRequest request = new DrawPrizeRequest();
-        request.setActivityId(21L);
-        request.setPrizeId(1L);
+        request.setActivityId(25L);
+        request.setPrizeId(6L);
         request.setWinningTime(new Date());
-        request.setPrizeTiers(PrizeTiersEnum.TIER_2);
+        request.setPrizeTiers(PrizeTiersEnum.TIER_SPECIAL);
         List<DrawPrizeRequest.Winner> winnerList = new ArrayList<>();
         DrawPrizeRequest.Winner winner = new DrawPrizeRequest.Winner();
-        winner.setUserId(1L);
-        winner.setUserName("张三");
+        winner.setUserId(6L);
+        winner.setUserName("zhangsan");
         winnerList.add(winner);
         request.setWinnerList(winnerList);
         drawPrizeService.drawPrize(request);

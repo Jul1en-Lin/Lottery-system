@@ -41,4 +41,5 @@ public interface ErrorConstants {
     ErrorCode CONVERT_STATUS_FAILED = new ErrorCode(508,"状态扭转失败");
     ErrorCode PARAMETER_EMPTY = new ErrorCode(509,"中奖请求参数为空");
     ErrorCode GET_CACHE_ERROR = new ErrorCode(510,"获取缓存中奖信息失败");
+    ErrorCode WINNERS_EMPTY = new ErrorCode(511,"中奖者不存在");
 }
