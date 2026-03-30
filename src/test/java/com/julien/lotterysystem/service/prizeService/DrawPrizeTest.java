@@ -30,7 +30,7 @@ public class DrawPrizeTest {
         request.setPrizeTiers(PrizeTiersEnum.TIER_SPECIAL);
         List<DrawPrizeRequest.Winner> winnerList = new ArrayList<>();
         DrawPrizeRequest.Winner winner = new DrawPrizeRequest.Winner();
-        winner.setUserId(6L);
+        winner.setUserId(7L);
         winner.setUserName("zhangsan");
         winnerList.add(winner);
         request.setWinnerList(winnerList);

@@ -52,7 +52,7 @@
     "tags": [],
     "title": "Jackson序列化工具",
     "description": "TODO: ：尝试Hutool的Json工具",
-    "status": "TODO",
+    "status": "DONE",
     "date": {
       "date": {
         "year": 2026,
@@ -64,6 +64,19 @@
         "minute": 40,
         "second": 24,
         "nano": 874450600
+      }
+    },
+    "finishDate": {
+      "date": {
+        "year": 2026,
+        "month": 3,
+        "day": 30
+      },
+      "time": {
+        "hour": 23,
+        "minute": 30,
+        "second": 58,
+        "nano": 431541500
       }
     },
     "isImported": true,

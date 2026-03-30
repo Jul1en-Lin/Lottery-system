@@ -22,10 +22,10 @@ public class WinningRecord {
     private Long id;
 
     /** 创建时间 */
-    private LocalDateTime gmtCreate;
+    private Date gmtCreate;
 
     /** 更新时间 */
-    private LocalDateTime gmtModified;
+    private Date gmtModified;
 
     // -----------活动模块-----------
 
