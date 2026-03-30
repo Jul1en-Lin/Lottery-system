@@ -2,6 +2,7 @@ package com.julien.lotterysystem.service.activitystatus.impl;
 
 import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.exception.LotteryException;
+import com.julien.lotterysystem.entity.dto.ActivityDetailDto;
 import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.service.ActivityService;
 import com.julien.lotterysystem.service.activitystatus.ActivityStatusManager;
@@ -91,5 +92,16 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
         return update;
     }
 
+    @Override
+    public void rollBackEvent(ConvertActivityStatusDTO convertActivityStatusDTO) {
+        log.info("回滚活动状态");
+        Map<String, AbstractActivityOperator> currentMap = new HashMap<>(operatorMap);
+        for (AbstractActivityOperator operator : currentMap.values()) {
+            operator.convert(convertActivityStatusDTO);
+        }
+        log.info("回滚活动状态完成,更新缓存");
+        ActivityDetailDto activityDetail = activityService.getActivityDetail(convertActivityStatusDTO.getActivityId());
+        activityService.cacheActivity(activityDetail);
+    }
 
 }

@@ -48,6 +48,4 @@ public interface ActivityService {
      * @return
      */
     ActivityDetailDto getActivityDetail(Long activityId);
-
-
 }
