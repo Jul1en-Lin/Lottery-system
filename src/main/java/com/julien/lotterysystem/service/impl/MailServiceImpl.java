@@ -40,4 +40,26 @@ public class MailServiceImpl implements MailService {
             throw new LotteryException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "验证码发送失败，请稍后重试");
         }
     }
+
+    @Override
+    public void sendWinningNotification(String to, String winnerName, String activityName, String prizeName, String prizeTier) {
+        if (!RegexUtil.checkMail(to)) {
+            log.warn("中奖通知邮件跳过，邮箱格式错误：{}", to);
+            return;
+        }
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);
+        message.setTo(to);
+        message.setSubject("【抽奖系统】恭喜您中奖了！");
+        message.setText(String.format(
+                "尊敬的 %s，您好！\n\n恭喜您在活动【%s】中抽中【%s】（%s）！\n\n请及时联系主办方领取奖品。\n\n祝您生活愉快！",
+                winnerName, activityName, prizeName, prizeTier
+        ));
+        try {
+            mailSender.send(message);
+            log.info("中奖通知邮件发送成功，收件人：{}，奖品：{}", to, prizeName);
+        } catch (Exception e) {
+            log.error("中奖通知邮件发送失败，收件人：{}，奖品：{}", to, prizeName, e);
+        }
+    }
 }

@@ -10,15 +10,18 @@ import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
 import com.julien.lotterysystem.service.ActivityService;
 import com.julien.lotterysystem.service.DrawPrizeService;
+import com.julien.lotterysystem.service.MailService;
 import com.julien.lotterysystem.service.activitystatus.ActivityStatusManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Configuration
@@ -29,6 +32,11 @@ public class MqReceiver {
     private DrawPrizeService drawPrizeService;
     @Autowired
     private ActivityStatusManager activityStatusManager;
+    @Autowired
+    @Qualifier("lotteryAsyncExecutor")
+    private Executor asyncExecutor;
+    @Autowired
+    private MailService mailService;
 
     /**
      * 处理抽奖消息
@@ -49,19 +57,55 @@ public class MqReceiver {
                 log.error("抽奖请求校验失败,param:{}", JacksonUtil.serialize(param));
                 return;
             }
-
             // 重要！！
             // 状态扭转处理（活动状态、奖品状态、中奖者状态）
             // 设计模式：责任链 + 策略模式
             convertStatus(param);
             // 保存中奖者信息 + 缓存中奖信息
             List<WinningRecord> winningRecords = drawPrizeService.saveWinningRecord(param);
-            // 异步处理中奖信息
-
+            // 异步方式通知中奖者（邮箱、短信）
+            syncExecute(winningRecords);
         } catch (LotteryException e) {
             log.error("处理MQ消息异常:{},{}",e.getCode(),e.getMessage(),e);
+            // 回滚状态扭转，保证事务一致性
+            // rollback(param);
+            // 抛出异常——为了消息重试
+            throw e;
         } catch (Exception e) {
             log.error("处理MQ消息异常:",e);
+            // 回滚状态扭转，保证事务一致性
+            // rollback(param);
+            // 抛出异常——为了消息重试
+            throw e;
+        }
+    }
+
+    /**
+     * 异步（并发）执行通知中奖者（邮箱、短信）
+     * @param winningRecords 中奖者信息
+     */
+    private void syncExecute(List<WinningRecord> winningRecords) {
+        if (winningRecords == null || winningRecords.isEmpty()) {
+            return;
+        }
+        // TODO：扩展——采用策略模式
+        // 只关注于异步的思想
+        // 短信服务暂时不实现，只实现邮件通知
+        // asyncExecutor.execute(() -> sendSms(winningRecords));
+        asyncExecutor.execute(() -> sendEmail(winningRecords));
+
+
+    }
+
+    private void sendEmail(List<WinningRecord> winningRecords) {
+        for (WinningRecord record : winningRecords) {
+            mailService.sendWinningNotification(
+                    record.getWinnerEmail(),
+                    record.getWinnerName(),
+                    record.getActivityName(),
+                    record.getPrizeName(),
+                    record.getPrizeTier()
+            );
         }
     }
 

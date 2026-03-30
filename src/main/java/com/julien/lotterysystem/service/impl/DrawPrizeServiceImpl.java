@@ -113,10 +113,6 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
 
     @Override
     public List<WinningRecord> saveWinningRecord(DrawPrizeRequest param) {
-        if (null == param) {
-            log.error("保存中奖信息参数不能为空");
-            throw new LotteryException(ErrorConstants.PARAMETER_EMPTY);
-        }
         log.info("保存中奖记录，参数：{}", JacksonUtil.serialize(param));
         Activity activity = activityMapper.selectById(param.getActivityId());
         Prize prize = prizeMapper.selectById(param.getPrizeId());
@@ -193,11 +189,11 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         }
         String key = WINNING_RECORD_PREFIX + activityId;
         try {
-            log.info("获取缓存中奖信息，key：{}", key);
+            log.debug("获取缓存中奖信息，key：{}", key);
             return (List<WinningRecord>) redisTemplate.opsForValue().get(key);
         } catch (Exception e) {
             log.error("获取缓存中奖信息失败，key：{}", key, e);
-            throw new LotteryException(ErrorConstants.GET_CACHE_ERROR);
+            return null;
         }
     }
 
@@ -209,11 +205,11 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         }
         String key = WINNING_RECORD_PREFIX + activityId + "_" + prizeId;
         try {
-            log.info("获取缓存中奖信息，key：{}", key);
+            log.debug("获取缓存中奖信息，key：{}", key);
             return (List<WinningRecord>) redisTemplate.opsForValue().get(key);
         } catch (Exception e) {
             log.error("获取缓存中奖信息失败，key：{}", key, e);
-            throw new LotteryException(ErrorConstants.GET_CACHE_ERROR);
+            return null;
         }
     }
 }

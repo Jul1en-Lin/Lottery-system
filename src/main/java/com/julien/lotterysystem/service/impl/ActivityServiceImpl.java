@@ -449,17 +449,19 @@ public class ActivityServiceImpl implements ActivityService {
     public void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO) {
         Long activityId = activityStatusDTO.getActivityId();
         if (null == activityId) {
-            log.warn("缓存活动状态失败，活动ID为空");
+            log.warn("更新缓存活动状态失败，活动ID为空");
             return;
         }
         try {
             ActivityDetailDto activityDetailDto = getActivityDetailFromDb(activityId);
             cacheActivity(activityDetailDto);
         } catch (LotteryException e) {
-            log.error("缓存活动状态失败，活动ID：{},原因:{}",
+            log.error("更新缓存活动状态失败，活动ID：{},原因:{}",
                     activityStatusDTO.getActivityId(), e.getErrMsg());
+            throw e;
         } catch (Exception e) {
-            log.error("缓存活动状态失败，活动ID：{}", activityStatusDTO.getActivityId(),e);
+            log.error("更新缓存活动状态失败，活动ID：{}", activityStatusDTO.getActivityId(),e);
+            throw e;
         }
     }
 }
