@@ -174,7 +174,6 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
             String key2 = WINNING_RECORD_PREFIX + param.getActivityId();
             cacheWinningRecords(key2, allWinningRecords, CACHE_TIMEOUT);
         }
-
         return winningRecords;
     }
 
@@ -225,5 +224,24 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
             log.error("获取缓存中奖信息失败，key：{}", key, e);
             return null;
         }
+    }
+
+    @Override
+    public void deleteWinningRecordCache(Long activityId, Long prizeId) {
+        String key1 = activityId + "_" + prizeId;
+        String key2 = activityId.toString();
+        try {
+            // 删除奖品维度的中奖信息缓存
+            if (redisTemplate.hasKey(WINNING_RECORD_PREFIX + key1)){
+                redisTemplate.delete(WINNING_RECORD_PREFIX + key1);
+            }
+            // 删除活动维度的中奖信息缓存
+            if (redisTemplate.hasKey(WINNING_RECORD_PREFIX + key2)){
+                redisTemplate.delete(WINNING_RECORD_PREFIX + key2);
+            }
+        } catch (Exception e) {
+            log.error("删除中奖信息缓存失败，key1：{}，key2：{}", key1,key2,e);
+        }
+
     }
 }

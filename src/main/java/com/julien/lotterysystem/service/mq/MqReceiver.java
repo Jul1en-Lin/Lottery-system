@@ -22,14 +22,17 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import static com.julien.lotterysystem.common.config.RabbitConfig.QUEUE_NAME;
+
 @Slf4j
 @Configuration
-@RabbitListener(queues = "LotteryQueue")
+@RabbitListener(queues = QUEUE_NAME)
 public class MqReceiver {
 
     @Autowired
@@ -51,7 +54,7 @@ public class MqReceiver {
      * @param message Map类型，包含 messageId 和 messageBody
      */
     @RabbitHandler
-    public void process(Map<String, String> message) {
+    public void process(Map<String, String> message) throws Exception {
         // 从队列中取出消息
         log.info("从消息队列中取出消息,message:{}", JacksonUtil.serialize(message));
         // 提取消息体
@@ -63,7 +66,6 @@ public class MqReceiver {
         }
         log.info("处理抽奖消息,param:{}", param);
         // 处理抽奖流程
-
         try {
             // 校验抽奖请求
             // checkDrawPrizeRequest 选择不抛出异常，选择返回boolean
@@ -76,12 +78,15 @@ public class MqReceiver {
                 log.error("抽奖请求校验失败,param:{}", JacksonUtil.serialize(param));
                 return;
             }
+
             // 重要！！
             // 状态扭转处理（活动状态、奖品状态、中奖者状态）
             // 设计模式：责任链 + 策略模式
             convertStatus(param);
+
             // 保存中奖者信息 + 缓存中奖信息
             List<WinningRecord> winningRecords = drawPrizeService.saveWinningRecord(param);
+
             // 异步方式通知中奖者（邮箱、短信）
             // 此处不会抛出异常，故回滚操作只专注于状态扭转和中奖者信息保存
             syncExecute(winningRecords);
@@ -89,14 +94,12 @@ public class MqReceiver {
             log.error("处理MQ消息异常:{},{}",e.getCode(),e.getMessage(),e);
             // 回滚状态扭转，保证事务一致性
             rollback(param);
-            // 抛出异常——为了消息重试
-            throw e;
+            throw e; // 抛出异常——消息重试，重试失败后进行死信队列处理
         } catch (Exception e) {
             log.error("处理MQ消息异常:",e);
             // 回滚状态扭转，保证事务一致性
             rollback(param);
-            // 抛出异常——为了消息重试
-            throw e;
+            throw e; // 抛出异常——消息重试，重试失败后进行死信队列处理
         }
     }
 
@@ -110,8 +113,6 @@ public class MqReceiver {
             winnerRollback(param);
         }
     }
-
-
 
 
     /**
@@ -130,7 +131,7 @@ public class MqReceiver {
     }
 
     /**
-     * 回滚状态扭转
+     * 回滚状态扭转 + 更新缓存
      * @param param
      */
     private void statusRollback(DrawPrizeRequest param) {
@@ -154,13 +155,17 @@ public class MqReceiver {
     }
 
     /**
-     * 回滚中奖者信息
+     * 回滚中奖者信息 + 更新缓存
      * 即删除
      */
     private void winnerRollback(DrawPrizeRequest param) {
+        // 删除中奖者信息
         winningRecordMapper.delete(new LambdaQueryWrapper<WinningRecord>()
                 .eq(WinningRecord::getActivityId, param.getActivityId())
                 .eq(WinningRecord::getPrizeId, param.getPrizeId()));
+        // 删除缓存
+        drawPrizeService.deleteWinningRecordCache(param.getActivityId(), param.getPrizeId());
+
     }
 
     /**
@@ -183,6 +188,9 @@ public class MqReceiver {
      * @param winningRecords 中奖者信息
      */
     private void sendEmail(List<WinningRecord> winningRecords) {
+        // 做发送邮件前的校验
+        if (CollectionUtils.isEmpty(winningRecords))
+            return;
         for (WinningRecord record : winningRecords) {
             mailService.sendWinningNotification(
                     record.getWinnerEmail(),

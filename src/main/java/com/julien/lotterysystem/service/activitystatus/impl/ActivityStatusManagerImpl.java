@@ -100,8 +100,7 @@ public class ActivityStatusManagerImpl implements ActivityStatusManager {
             operator.convert(convertActivityStatusDTO);
         }
         log.info("回滚活动状态完成,更新缓存");
-        ActivityDetailDto activityDetail = activityService.getActivityDetail(convertActivityStatusDTO.getActivityId());
-        activityService.cacheActivity(activityDetail);
+        activityService.cacheActivityStatus(convertActivityStatusDTO);
     }
 
 }

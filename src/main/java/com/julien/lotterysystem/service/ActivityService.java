@@ -29,13 +29,6 @@ public interface ActivityService {
     void cacheActivity(ActivityDetailDto detailDto);
 
     /**
-     * 抽奖模块的更新缓存
-     * 将扭转状态后的活动数据更新缓存到 Redis 中
-     * @param activityStatusDTO 状态扭转数据
-     */
-    void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO);
-
-    /**
      * 翻页查询活动列表
      * @param page
      * @return
@@ -48,4 +41,11 @@ public interface ActivityService {
      * @return
      */
     ActivityDetailDto getActivityDetail(Long activityId);
+
+    /**
+     * 抽奖模块的更新缓存
+     * 将扭转状态后的活动数据更新缓存到 Redis 中
+     * @param activityStatusDTO 状态扭转数据
+     */
+    void cacheActivityStatus(ConvertActivityStatusDTO activityStatusDTO);
 }
