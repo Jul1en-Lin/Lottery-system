@@ -9,6 +9,8 @@ import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JacksonUtil;
 import com.julien.lotterysystem.entity.dataobject.*;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
+import com.julien.lotterysystem.entity.request.GetWinningRecordsRequest;
+import com.julien.lotterysystem.entity.response.WinningRecordResponse;
 import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.DrawPrizeService;
 import jakarta.validation.constraints.NotNull;
@@ -128,6 +130,7 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     @Override
     public List<WinningRecord> saveWinningRecord(DrawPrizeRequest param) {
         log.info("保存中奖记录，参数：{}", JacksonUtil.serialize(param));
+        // 获取相关数据，如活动、奖品、中奖者信息
         Activity activity = activityMapper.selectById(param.getActivityId());
         Prize prize = prizeMapper.selectById(param.getPrizeId());
         ActivityPrize activityPrize = activityPrizeMapper.selectOne(new LambdaQueryWrapper<ActivityPrize>()
@@ -138,6 +141,7 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
                 .toList();
         List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
                 .in(User::getId, winnerIds));
+        // 构建中奖记录
         List<WinningRecord> winningRecords = users.stream()
                 .map(user -> {
                     WinningRecord winningRecord = new WinningRecord();
@@ -195,7 +199,7 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     }
 
     @Override
-    public List<WinningRecord> getWinningRecord(Long activityId) {
+    public List<WinningRecord> getWinningRecordCache(Long activityId) {
         if (null == activityId) {
             log.warn("获取缓存中奖信息活动ID参数为空");
             return null;
@@ -211,7 +215,7 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     }
 
     @Override
-    public List<WinningRecord> getWinningRecord(Long activityId, Long prizeId) {
+    public List<WinningRecord> getWinningRecordCache(Long activityId, Long prizeId) {
         if (null == activityId || null == prizeId) {
             log.warn("获取缓存中奖信息活动ID或奖品ID参数为空");
             return null;
@@ -242,6 +246,63 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         } catch (Exception e) {
             log.error("删除中奖信息缓存失败，key1：{}，key2：{}", key1,key2,e);
         }
+    }
 
+    @Override
+    public List<WinningRecordResponse> getWinningRecords(GetWinningRecordsRequest request) {
+        // 尝试获取缓存
+        List<WinningRecord> winningRecordCache = null;
+        if (null == request.getPrizeId()) {
+            // 查询整个活动维度的中奖信息
+            log.info("活动ID为空，获取整个活动维度的中奖信息");
+            winningRecordCache = getWinningRecordCache(request.getActivityId());
+        } else {
+            // 查询奖品维度的中奖信息
+            log.info("活动ID和奖品ID都不为空，获取奖品维度的中奖信息");
+            winningRecordCache = getWinningRecordCache(request.getActivityId(), request.getPrizeId());
+        }
+        if (winningRecordCache != null) {
+            return convertWinningRecordResponse(winningRecordCache);
+        }
+
+        // 缓存中没有，则查询数据库
+        log.info("缓存中没有中奖信息，从数据库查询，活动ID：{}，奖品ID：{}", request.getActivityId(), request.getPrizeId());
+        LambdaQueryWrapper<WinningRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WinningRecord::getActivityId, request.getActivityId());
+        // 动态条件：如果 prizeId 存在则加上 prizeId 查询条件
+        if (request.getPrizeId() != null) {
+            wrapper.eq(WinningRecord::getPrizeId, request.getPrizeId());
+        }
+        List<WinningRecord> winningRecords = winningRecordMapper.selectList(wrapper);
+
+
+        // 将查询结果缓存
+        if (!CollectionUtils.isEmpty(winningRecords)) {
+            if (request.getPrizeId() != null) {
+                cacheWinningRecords(WINNING_RECORD_PREFIX + request.getActivityId() + "_" + request.getPrizeId(),
+                        winningRecords, CACHE_TIMEOUT);
+            } else {
+                cacheWinningRecords(WINNING_RECORD_PREFIX + request.getActivityId(),
+                        winningRecords, CACHE_TIMEOUT);
+            }
+        } else {
+            log.info("数据库中没有中奖信息，活动ID：{}，奖品ID：{}", request.getActivityId(), request.getPrizeId());
+            return null;
+        }
+        return convertWinningRecordResponse(winningRecords);
+    }
+
+    private List<WinningRecordResponse> convertWinningRecordResponse(
+            List<WinningRecord> winningRecordCache) {
+        return winningRecordCache.stream()
+                .map(winningRecord -> {
+                    WinningRecordResponse winningRecordResponse = new WinningRecordResponse();
+                    winningRecordResponse.setPrizeName(winningRecord.getPrizeName());
+                    winningRecordResponse.setPrizeTier(winningRecord.getPrizeTier());
+                    winningRecordResponse.setWinnerId(winningRecord.getWinnerId());
+                    winningRecordResponse.setWinnerName(winningRecord.getWinnerName());
+                    winningRecordResponse.setWinningTime(winningRecord.getWinningTime());
+                    return winningRecordResponse;
+                }).toList();
     }
 }
