@@ -146,6 +146,7 @@ button {
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: -0.02em;
+    color: #112f33;
 }
 
 .brand-subtitle {
@@ -2052,17 +2053,33 @@ body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]
         linear-gradient(152deg, #1f6f73 0%, #15595e 52%, #0f4b50 100%);
 }
 
+/* 登录页左侧背景与后台侧边栏保持一致（约 rgb(220,232,232)） */
+body[data-page="login"] .login-page-hero {
+    background:
+        radial-gradient(circle at 88% 12%, rgba(31, 111, 115, 0.08) 0, transparent 35%),
+        radial-gradient(circle at 10% 88%, rgba(255, 255, 255, 0.24) 0, transparent 28%),
+        linear-gradient(152deg, rgb(220, 232, 232) 0%, rgb(220, 232, 232) 100%);
+}
+
+body[data-page="login"] .login-page-brand {
+    color: #112f33;
+}
+
+body[data-page="login"] .login-page-brand .brand-icon svg {
+    stroke: #1f6f73;
+}
+
 body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-panel-header h1 {
     font-family: "Chakra Petch", "Manrope", sans-serif;
     letter-spacing: -0.02em;
 }
 
-body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-page-brand,
-body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .login-brand-mobile {
+body:is([data-page="signup"], [data-page="forgot-password"]) .login-page-brand,
+body:is([data-page="signup"], [data-page="forgot-password"]) .login-brand-mobile {
     color: #fffeff;
 }
 
-body:is([data-page="login"], [data-page="signup"], [data-page="forgot-password"]) .brand-icon svg {
+body:is([data-page="signup"], [data-page="forgot-password"]) .brand-icon svg {
     stroke: #9ce453;
 }
 

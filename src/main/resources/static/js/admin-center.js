@@ -107,9 +107,11 @@ async function initializeAdminCenter() {
             subview: "draw",
             selectedActivityId: "",
             selectedPrizeId: "",
+            suppressAutoSelect: false,
             drawing: false,
             drawStatusText: "",
             activityRecords: [],
+            prizeRemainingMap: {},
             recordsLoading: false,
             pollingTimer: 0,
             pollingMaxAttempts: 6,
@@ -852,10 +854,6 @@ function renderActivities(state) {
                 <span class="status-pill ${resolveStatusClass(activity.status)}">${escapeHtml(activity.status || "已创建")}</span>
             </div>
             <p class="list-item-description">${escapeHtml(activity.description || "暂无活动说明")}</p>
-            <div class="list-item-meta">
-                <span class="meta-pill">参与用户：${Array.isArray(activity.activityUserList) ? activity.activityUserList.length : 0} 人</span>
-                <span class="meta-pill">奖品项：${Array.isArray(activity.activityPrizeList) ? activity.activityPrizeList.length : 0} 项</span>
-            </div>
         </article>
     `).join("");
 
@@ -1659,6 +1657,19 @@ async function fetchActivityWinningRecords(activityId) {
     return Array.isArray(records) ? records : [];
 }
 
+async function fetchPrizeWinningRecords(activityId, prizeId) {
+    const payload = await requestJson("/getWinningRecords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            activityId: Number(activityId),
+            prizeId: Number(prizeId)
+        })
+    });
+    const records = unwrapApiData(payload);
+    return Array.isArray(records) ? records : [];
+}
+
 async function submitDrawPrize(payload) {
     const result = await requestJson("/drawPrize", {
         method: "POST",
@@ -1674,17 +1685,27 @@ function bindLotterySubview(state) {
 
     links.forEach(link => {
         link.addEventListener("click", () => {
-            const target = link.dataset.lotterySubview;
-            state.lottery.subview = target;
-
-            links.forEach(l => l.classList.toggle("is-active", l.dataset.lotterySubview === target));
-            panels.forEach(p => p.classList.toggle("is-active", p.dataset.lotterySubviewPanel === target));
-
-            if (target === "activity-records") {
-                refreshActivityRecords(state);
-            }
+            setLotterySubview(state, link.dataset.lotterySubview);
         });
     });
+}
+
+function setLotterySubview(state, target) {
+    const links = Array.from(document.querySelectorAll("[data-lottery-subview]"));
+    const panels = Array.from(document.querySelectorAll("[data-lottery-subview-panel]"));
+    const nextTarget = target === "activity-records" ? "activity-records" : "draw";
+
+    state.lottery.subview = nextTarget;
+    links.forEach((link) => {
+        link.classList.toggle("is-active", link.dataset.lotterySubview === nextTarget);
+    });
+    panels.forEach((panel) => {
+        panel.classList.toggle("is-active", panel.dataset.lotterySubviewPanel === nextTarget);
+    });
+
+    if (nextTarget === "activity-records") {
+        refreshActivityRecords(state);
+    }
 }
 
 function isActivityEnded(activity) {
@@ -1694,7 +1715,7 @@ function isActivityEnded(activity) {
 }
 
 function getLotterySelectableActivities(state) {
-    return state.activities.filter((activity) => !isActivityEnded(activity));
+    return state.activities;
 }
 
 function bindLotteryActivitySwitch(state) {
@@ -1706,18 +1727,49 @@ function bindLotteryActivitySwitch(state) {
         const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
 
         if (currentActivity) {
-            await loadAdminActivityDetail(state, state.lottery.selectedActivityId);
-            const detailActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId) || currentActivity;
+            state.lottery.suppressAutoSelect = true;
+            try {
+                try {
+                    await loadAdminActivityDetail(state, state.lottery.selectedActivityId);
+                } catch (error) {
+                    console.warn("加载活动详情失败，使用当前活动缓存渲染抽奖条件", error);
+                }
 
-            document.getElementById("lotteryParticipantCount").textContent = detailActivity.activityUserList?.length || 0;
-            document.getElementById("lotteryPrizeAmount").textContent = detailActivity.activityPrizeList?.length || 0;
+                const detailActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId) || currentActivity;
+                await refreshLotteryPrizeRemainingByRecords(state, detailActivity);
+                const availablePrizes = getAvailableLotteryPrizes(state, detailActivity);
+                const drawBtn = document.getElementById("lotteryDrawButton");
+                const drawStatusEl = document.getElementById("lotteryDrawStatus");
 
-            syncLotteryPrizeOptions(state, detailActivity);
-            refreshActivityRecords(state);
+                document.getElementById("lotteryParticipantCount").textContent = detailActivity.activityUserList?.length || 0;
+                document.getElementById("lotteryPrizeAmount").textContent = availablePrizes.length;
+
+                if (isActivityEnded(detailActivity)) {
+                    syncLotteryPrizeOptions(state, null);
+                    if (drawBtn) {
+                        drawBtn.disabled = true;
+                    }
+                    showInlineStatus(drawStatusEl, "info", "当前活动已结束，无法继续抽奖，已自动切换到活动公示查看中奖信息。");
+                    setLotterySubview(state, "activity-records");
+                } else {
+                    if (drawBtn) {
+                        drawBtn.disabled = false;
+                    }
+                    clearInlineStatus(drawStatusEl);
+                    syncLotteryPrizeOptions(state, detailActivity);
+                    refreshActivityRecords(state);
+                }
+            } finally {
+                state.lottery.suppressAutoSelect = false;
+            }
         } else {
             document.getElementById("lotteryParticipantCount").textContent = "0";
             document.getElementById("lotteryPrizeAmount").textContent = "0";
             syncLotteryPrizeOptions(state, null);
+            const drawBtn = document.getElementById("lotteryDrawButton");
+            if (drawBtn) {
+                drawBtn.disabled = false;
+            }
         }
     });
 }
@@ -1741,17 +1793,23 @@ function renderLotteryActivityOptions(state) {
     }
 
     actSelect.innerHTML = '<option value="">请选择活动</option>' + availableActivities.map((activity) => (
-        `<option value="${activity.id}">${escapeHtml(activity.name || "未命名活动")}</option>`
+        `<option value="${activity.id}">${escapeHtml(activity.name || "未命名活动")}${isActivityEnded(activity) ? "（已结束）" : ""}</option>`
     )).join("");
 
     const selectedAvailable = availableActivities.find((activity) => String(activity.id) === String(state.lottery.selectedActivityId));
-    const fallbackActivity = selectedAvailable || availableActivities[0];
+    const runningActivity = availableActivities.find((activity) => !isActivityEnded(activity));
+    const fallbackActivity = selectedAvailable || runningActivity || availableActivities[0];
     const nextValue = String(fallbackActivity.id);
+    const prizeSelect = document.getElementById("lotteryPrizeSelect");
+    const prizeNeedsSync = !state.lottery.selectedPrizeId
+        || !prizeSelect
+        || prizeSelect.options.length <= 1
+        || /请先选择活动/.test(prizeSelect.options[0]?.textContent || "");
 
     actSelect.value = nextValue;
     state.lottery.selectedActivityId = nextValue;
 
-    if (nextValue !== oldValue) {
+    if (!state.lottery.suppressAutoSelect && (nextValue !== oldValue || prizeNeedsSync)) {
         actSelect.dispatchEvent(new Event("change"));
     }
 }
@@ -1760,28 +1818,86 @@ function syncLotteryPrizeOptions(state, activity) {
     const prizeSelect = document.getElementById("lotteryPrizeSelect");
     if (!prizeSelect) return;
 
-    if (!activity || !activity.activityPrizeList || activity.activityPrizeList.length === 0) {
-        prizeSelect.innerHTML = '<option value="">暂无奖品</option>';
+    const availablePrizeOptions = getAvailableLotteryPrizes(state, activity);
+
+    if (!activity || !availablePrizeOptions.length) {
+        prizeSelect.innerHTML = '<option value="">暂无可抽取奖品</option>';
         state.lottery.selectedPrizeId = "";
         updateLotterySelectedPrizeSummary(state, null);
         return;
     }
 
-    const prizeOptions = activity.activityPrizeList.map((activityPrize, index) => {
-        const matchedPrize = state.prizes.find((prize) => String(prize.id) === String(activityPrize.prizeId));
-        return {
-            ...activityPrize,
-            prizeName: activityPrize.prizeName || matchedPrize?.name || `未命名奖品 ${index + 1}`
-        };
-    });
-
-    prizeSelect.innerHTML = '<option value="">请选择奖品</option>' + prizeOptions.map((prize) => {
+    prizeSelect.innerHTML = '<option value="">请选择奖品</option>' + availablePrizeOptions.map((prize) => {
         return `<option value="${prize.prizeId}">${escapeHtml(prize.prizeName)}</option>`;
     }).join("");
 
-    state.lottery.selectedPrizeId = String(prizeOptions[0].prizeId);
+    state.lottery.selectedPrizeId = String(availablePrizeOptions[0].prizeId);
     prizeSelect.value = state.lottery.selectedPrizeId;
-    updateLotterySelectedPrizeSummary(state, prizeOptions[0]);
+    updateLotterySelectedPrizeSummary(state, availablePrizeOptions[0]);
+}
+
+function buildLotteryPrizeRemainingKey(activityId, prizeId) {
+    return `${String(activityId || "")}_${String(prizeId || "")}`;
+}
+
+async function refreshLotteryPrizeRemainingByRecords(state, activity) {
+    if (!activity || !Array.isArray(activity.activityPrizeList) || !activity.activityPrizeList.length) {
+        return;
+    }
+
+    const activityId = Number(activity.id);
+    if (!activityId) {
+        return;
+    }
+
+    const tasks = activity.activityPrizeList.map(async (activityPrize) => {
+        const prizeId = Number(activityPrize?.prizeId || 0);
+        if (!prizeId) {
+            return;
+        }
+
+        const key = buildLotteryPrizeRemainingKey(activity.id, prizeId);
+        const configuredAmount = Math.max(0, Number(activityPrize?.prizeAmount || 0));
+        const prizeStatus = String(activityPrize?.prizeStatus || "").toUpperCase();
+
+        if (prizeStatus === "COMPLETED") {
+            state.lottery.prizeRemainingMap[key] = 0;
+            return;
+        }
+
+        try {
+            const winningRecords = await fetchPrizeWinningRecords(activityId, prizeId);
+            const drawnCount = Array.isArray(winningRecords) ? winningRecords.length : 0;
+            state.lottery.prizeRemainingMap[key] = Math.max(0, configuredAmount - drawnCount);
+        } catch (error) {
+            state.lottery.prizeRemainingMap[key] = configuredAmount;
+        }
+    });
+
+    await Promise.all(tasks);
+}
+
+function getAvailableLotteryPrizes(state, activity) {
+    if (!activity || !Array.isArray(activity.activityPrizeList)) {
+        return [];
+    }
+
+    return activity.activityPrizeList.map((activityPrize, index) => {
+        const matchedPrize = state.prizes.find((prize) => String(prize.id) === String(activityPrize.prizeId));
+        const key = buildLotteryPrizeRemainingKey(activity.id, activityPrize.prizeId);
+        const configuredAmount = Math.max(0, Number(activityPrize.prizeAmount || 0));
+        const prizeStatus = String(activityPrize.prizeStatus || "").toUpperCase();
+        const resolvedAmount = Number.isFinite(state.lottery.prizeRemainingMap[key])
+            ? Number(state.lottery.prizeRemainingMap[key])
+            : configuredAmount;
+        const remainingAmount = prizeStatus === "COMPLETED" ? 0 : Math.max(0, resolvedAmount);
+
+        return {
+            ...activityPrize,
+            prizeName: activityPrize.prizeName || matchedPrize?.name || `未命名奖品 ${index + 1}`,
+            prizeAmount: remainingAmount
+        };
+    }).filter((prize) => prize.prizeAmount > 0);
 }
 
 function bindLotteryPrizeSwitch(state) {
@@ -1792,7 +1908,7 @@ function bindLotteryPrizeSwitch(state) {
         state.lottery.selectedPrizeId = prizeSelect.value;
         const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
         if (currentActivity && currentActivity.activityPrizeList) {
-            const prize = currentActivity.activityPrizeList.find(p => String(p.prizeId) === state.lottery.selectedPrizeId);
+            const prize = getAvailableLotteryPrizes(state, currentActivity).find((item) => String(item.prizeId) === state.lottery.selectedPrizeId);
             updateLotterySelectedPrizeSummary(state, prize);
         }
     });
@@ -1875,7 +1991,8 @@ function bindLotteryDrawAction(state) {
         if (!currentActivity) return;
 
         if (isActivityEnded(currentActivity)) {
-            showInlineStatus(statusEl, "error", "活动已结束，无法抽奖。请重新选择进行中的活动。");
+            showInlineStatus(statusEl, "error", "活动已结束，无法抽奖，已切换到活动公示。请查看中奖名单。");
+            setLotterySubview(state, "activity-records");
             return;
         }
 
@@ -1903,9 +2020,6 @@ function bindLotteryDrawAction(state) {
             showInlineStatus(statusEl, "success", `请求已提交，正在等待 ${winnerList.length} 人中奖结果...`);
 
             pollWinningRecordsAfterDraw(state, winnerList.length);
-
-            prize.prizeAmount = 0;
-            updateLotterySelectedPrizeSummary(state, prize);
 
         } catch (err) {
             showInlineStatus(statusEl, "error", err.message || "抽奖失败。");
@@ -1983,6 +2097,18 @@ async function pollWinningRecordsAfterDraw(state, expectedIncrease) {
         renderLotteryRecordTables(state);
 
         if (state.lottery.activityRecords.length >= initialActivityCount + expectCount) {
+            const latestActivity = state.activities.find((activity) => String(activity.id) === String(activityId));
+            if (latestActivity) {
+                try {
+                    await loadAdminActivityDetail(state, activityId);
+                } catch (error) {
+                    console.warn("抽奖后刷新活动详情失败，将使用当前活动缓存", error);
+                }
+                const syncedActivity = state.activities.find((activity) => String(activity.id) === String(activityId)) || latestActivity;
+                await refreshLotteryPrizeRemainingByRecords(state, syncedActivity);
+                syncLotteryPrizeOptions(state, syncedActivity);
+                document.getElementById("lotteryPrizeAmount").textContent = getAvailableLotteryPrizes(state, syncedActivity).length;
+            }
             showInlineStatus(statusEl, "success", "抽奖成功，中奖名单已刷新。");
             return;
         }
