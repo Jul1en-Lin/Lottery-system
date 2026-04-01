@@ -110,7 +110,6 @@ async function initializeAdminCenter() {
             drawing: false,
             drawStatusText: "",
             activityRecords: [],
-            prizeRecords: [],
             recordsLoading: false,
             pollingTimer: 0,
             pollingMaxAttempts: 6,
@@ -263,11 +262,6 @@ function bindModuleSwitching(state) {
     }
 
     const metadata = {
-        overview: {
-            eyebrow: "Admin Workspace",
-            title: "活动中心工作台",
-            subtitle: "查看运营总览，并从左侧选择具体模块进入单独工作视图。"
-        },
         activities: {
             eyebrow: "Activity Module",
             title: "活动管理",
@@ -291,7 +285,7 @@ function bindModuleSwitching(state) {
     };
 
     const setActivePanel = (panelId) => {
-        const nextId = metadata[panelId] ? panelId : "overview";
+        const nextId = metadata[panelId] ? panelId : "activities";
         state.currentPanel = nextId;
 
         state.elements.navLinks.forEach((link) => {
@@ -342,7 +336,7 @@ function bindModuleSwitching(state) {
         setActivePanel(window.location.hash.replace("#", ""));
     });
 
-    setActivePanel(window.location.hash.replace("#", "") || "overview");
+    setActivePanel(window.location.hash.replace("#", "") || "activities");
 }
 
 function bindActivityForm(state) {
@@ -833,6 +827,7 @@ function renderAll(state) {
     renderPrizes(state);
     renderMembers(state);
     renderMetrics(state);
+    renderLotteryActivityOptions(state);
 }
 
 function renderActivities(state) {
@@ -851,24 +846,21 @@ function renderActivities(state) {
     container.innerHTML = state.activities.map((activity) => `
         <article class="stack-list-item ${String(activity.id || "") === state.selectedActivityId ? "is-selected" : ""}" data-activity-id="${escapeHtml(String(activity.id || ""))}">
             <div class="list-item-top">
-                <div>
+                <div class="list-item-main">
                     <h5 class="list-item-title">${escapeHtml(activity.name || activity.title || "未命名活动")}</h5>
-                    <div class="list-item-meta">
-                        <span class="meta-pill">参与用户：${Array.isArray(activity.activityUserList) ? activity.activityUserList.length : 0} 人</span>
-                        <span class="meta-pill">奖品项：${Array.isArray(activity.activityPrizeList) ? activity.activityPrizeList.length : 0} 项</span>
-                    </div>
                 </div>
                 <span class="status-pill ${resolveStatusClass(activity.status)}">${escapeHtml(activity.status || "已创建")}</span>
             </div>
-            <p>${escapeHtml(activity.description || "暂无活动说明")}</p>
+            <p class="list-item-description">${escapeHtml(activity.description || "暂无活动说明")}</p>
             <div class="list-item-meta">
-                <span class="meta-pill">活动 ID：${escapeHtml(String(activity.id || "待分配"))}</span>
-                <span class="meta-pill">创建时间：${formatDateTime(activity.createdAt)}</span>
+                <span class="meta-pill">参与用户：${Array.isArray(activity.activityUserList) ? activity.activityUserList.length : 0} 人</span>
+                <span class="meta-pill">奖品项：${Array.isArray(activity.activityPrizeList) ? activity.activityPrizeList.length : 0} 项</span>
             </div>
         </article>
     `).join("");
 
     state.elements.activityListCount.textContent = `${state.activities.length} 个活动`;
+    renderLotteryActivityOptions(state);
 }
 
 function renderActivityDetail(state) {
@@ -1008,7 +1000,7 @@ function renderMembers(state) {
     if (state.memberLoading) {
         tbody.innerHTML = `
         <tr class="admin-table-empty">
-            <td colspan="4">正在加载人员列表...</td>
+            <td colspan="3">正在加载人员列表...</td>
         </tr>
     `;
         state.elements.memberListCount.textContent = "加载中";
@@ -1018,7 +1010,7 @@ function renderMembers(state) {
     if (!state.members.length) {
         tbody.innerHTML = `
         <tr class="admin-table-empty">
-            <td colspan="4">暂无符合条件的人员数据</td>
+            <td colspan="3">暂无符合条件的人员数据</td>
         </tr>
     `;
         state.elements.memberListCount.textContent = "0 人";
@@ -1030,7 +1022,6 @@ function renderMembers(state) {
             <td>${escapeHtml(member.userName)}</td>
             <td><span class="member-role ${member.identity === "NORMAL" ? "normal" : ""}">${member.identity === "ADMIN" ? "管理员" : "普通用户"}</span></td>
             <td>${escapeHtml(member.email)}</td>
-            <td><span class="status-pill ${member.identity === "ADMIN" ? "status-live" : "status-draft"}">${escapeHtml(member.status || "已激活")}</span></td>
         </tr>
     `).join("");
 
@@ -1038,9 +1029,15 @@ function renderMembers(state) {
 }
 
 function renderMetrics(state) {
-    state.elements.activityCount.textContent = String(state.activities.length);
-    state.elements.prizeCount.textContent = String(state.prizes.length);
-    state.elements.memberCount.textContent = String(state.members.length);
+    if (state.elements.activityCount) {
+        state.elements.activityCount.textContent = String(state.activities.length);
+    }
+    if (state.elements.prizeCount) {
+        state.elements.prizeCount.textContent = String(state.prizes.length);
+    }
+    if (state.elements.memberCount) {
+        state.elements.memberCount.textContent = String(state.members.length);
+    }
 }
 
 async function loadMembers(state) {
@@ -1662,19 +1659,6 @@ async function fetchActivityWinningRecords(activityId) {
     return Array.isArray(records) ? records : [];
 }
 
-async function fetchPrizeWinningRecords(activityId, prizeId) {
-    const payload = await requestJson("/getWinningRecords", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            activityId: Number(activityId),
-            prizeId: Number(prizeId)
-        })
-    });
-    const records = unwrapApiData(payload);
-    return Array.isArray(records) ? records : [];
-}
-
 async function submitDrawPrize(payload) {
     const result = await requestJson("/drawPrize", {
         method: "POST",
@@ -1698,11 +1682,19 @@ function bindLotterySubview(state) {
 
             if (target === "activity-records") {
                 refreshActivityRecords(state);
-            } else if (target === "prize-records") {
-                refreshPrizeRecords(state);
             }
         });
     });
+}
+
+function isActivityEnded(activity) {
+    const rawStatus = String(activity?.rawStatus || "").toUpperCase();
+    const status = String(activity?.status || "").trim();
+    return rawStatus === "END" || status === "已结束";
+}
+
+function getLotterySelectableActivities(state) {
+    return state.activities.filter((activity) => !isActivityEnded(activity));
 }
 
 function bindLotteryActivitySwitch(state) {
@@ -1714,21 +1706,54 @@ function bindLotteryActivitySwitch(state) {
         const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
 
         if (currentActivity) {
-            document.getElementById("lotteryActivityStatus").textContent = currentActivity.status || "未开始";
-            document.getElementById("lotteryParticipantCount").textContent = currentActivity.activityUserList?.length || 0;
-            document.getElementById("lotteryPrizeAmount").textContent = currentActivity.activityPrizeList?.length || 0;
-
             await loadAdminActivityDetail(state, state.lottery.selectedActivityId);
-            syncLotteryPrizeOptions(state, currentActivity);
+            const detailActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId) || currentActivity;
+
+            document.getElementById("lotteryParticipantCount").textContent = detailActivity.activityUserList?.length || 0;
+            document.getElementById("lotteryPrizeAmount").textContent = detailActivity.activityPrizeList?.length || 0;
+
+            syncLotteryPrizeOptions(state, detailActivity);
             refreshActivityRecords(state);
-            refreshPrizeRecords(state);
         } else {
-            document.getElementById("lotteryActivityStatus").textContent = "--";
             document.getElementById("lotteryParticipantCount").textContent = "0";
             document.getElementById("lotteryPrizeAmount").textContent = "0";
             syncLotteryPrizeOptions(state, null);
         }
     });
+}
+
+function renderLotteryActivityOptions(state) {
+    const actSelect = document.getElementById("lotteryActivitySelect");
+    if (!actSelect) {
+        return;
+    }
+
+    const availableActivities = getLotterySelectableActivities(state);
+    const oldValue = actSelect.value;
+
+    if (!availableActivities.length) {
+        actSelect.innerHTML = '<option value="">暂无进行中的活动</option>';
+        state.lottery.selectedActivityId = "";
+        syncLotteryPrizeOptions(state, null);
+        document.getElementById("lotteryParticipantCount").textContent = "0";
+        document.getElementById("lotteryPrizeAmount").textContent = "0";
+        return;
+    }
+
+    actSelect.innerHTML = '<option value="">请选择活动</option>' + availableActivities.map((activity) => (
+        `<option value="${activity.id}">${escapeHtml(activity.name || "未命名活动")}</option>`
+    )).join("");
+
+    const selectedAvailable = availableActivities.find((activity) => String(activity.id) === String(state.lottery.selectedActivityId));
+    const fallbackActivity = selectedAvailable || availableActivities[0];
+    const nextValue = String(fallbackActivity.id);
+
+    actSelect.value = nextValue;
+    state.lottery.selectedActivityId = nextValue;
+
+    if (nextValue !== oldValue) {
+        actSelect.dispatchEvent(new Event("change"));
+    }
 }
 
 function syncLotteryPrizeOptions(state, activity) {
@@ -1742,12 +1767,21 @@ function syncLotteryPrizeOptions(state, activity) {
         return;
     }
 
-    prizeSelect.innerHTML = activity.activityPrizeList.map(prize => {
-        return `<option value="${prize.prizeId}">${escapeHtml(prize.prizeName || '未命名奖品')}</option>`;
+    const prizeOptions = activity.activityPrizeList.map((activityPrize, index) => {
+        const matchedPrize = state.prizes.find((prize) => String(prize.id) === String(activityPrize.prizeId));
+        return {
+            ...activityPrize,
+            prizeName: activityPrize.prizeName || matchedPrize?.name || `未命名奖品 ${index + 1}`
+        };
+    });
+
+    prizeSelect.innerHTML = '<option value="">请选择奖品</option>' + prizeOptions.map((prize) => {
+        return `<option value="${prize.prizeId}">${escapeHtml(prize.prizeName)}</option>`;
     }).join("");
 
-    state.lottery.selectedPrizeId = String(activity.activityPrizeList[0].prizeId);
-    updateLotterySelectedPrizeSummary(state, activity.activityPrizeList[0]);
+    state.lottery.selectedPrizeId = String(prizeOptions[0].prizeId);
+    prizeSelect.value = state.lottery.selectedPrizeId;
+    updateLotterySelectedPrizeSummary(state, prizeOptions[0]);
 }
 
 function bindLotteryPrizeSwitch(state) {
@@ -1761,30 +1795,7 @@ function bindLotteryPrizeSwitch(state) {
             const prize = currentActivity.activityPrizeList.find(p => String(p.prizeId) === state.lottery.selectedPrizeId);
             updateLotterySelectedPrizeSummary(state, prize);
         }
-        if (state.lottery.subview === "prize-records") {
-            refreshPrizeRecords(state);
-        }
     });
-
-    const origRender = window.renderAll;
-    window.renderAll = function (st) {
-        if (origRender) origRender(st);
-        const actSelect = document.getElementById("lotteryActivitySelect");
-        if (actSelect && st.activities.length > 0) {
-            const oldValue = actSelect.value;
-            actSelect.innerHTML = '<option value="">请选择活动</option>' + st.activities.map(a => `<option value="${a.id}">${escapeHtml(a.name || "未命名活动")}</option>`).join("");
-
-            if (st.selectedActivityId) {
-                actSelect.value = st.selectedActivityId;
-                if (actSelect.value !== oldValue) {
-                    actSelect.dispatchEvent(new Event("change"));
-                }
-            } else if (actSelect.options.length > 1) {
-                actSelect.selectedIndex = 1;
-                actSelect.dispatchEvent(new Event("change"));
-            }
-        }
-    };
 }
 
 function updateLotterySelectedPrizeSummary(state, prize) {
@@ -1795,24 +1806,53 @@ function updateLotterySelectedPrizeSummary(state, prize) {
     if (!prize) {
         nameEl.textContent = "当前未选择奖品";
         amountEl.textContent = "--";
+        updateLotteryDrawButtonLabel(0);
     } else {
-        nameEl.textContent = prize.prizeName || "未命名奖品";
-        amountEl.textContent = (PRIZE_TIER_LABELS[prize.prizeTiers] || prize.prizeTiers) + ` · 余 ${prize.prizeAmount} 份`;
+        const matchedPrize = state.prizes.find((item) => String(item.id) === String(prize.prizeId));
+        nameEl.textContent = prize.prizeName || matchedPrize?.name || "未命名奖品";
+        const tierLabel = PRIZE_TIER_LABELS[prize.prizeTiers] || prize.prizeTiers || "未知档位";
+        const amount = Number(prize.prizeAmount || 0);
+        amountEl.textContent = `${tierLabel} · 余 ${amount} 份`;
+        updateLotteryDrawButtonLabel(amount);
     }
+}
+
+function updateLotteryDrawButtonLabel(count) {
+    const drawBtn = document.getElementById("lotteryDrawButton");
+    if (!drawBtn) {
+        return;
+    }
+
+    const drawCount = Number(count || 0);
+    if (drawCount > 0) {
+        drawBtn.textContent = `立即抽奖（${drawCount}人）`;
+        return;
+    }
+
+    drawBtn.textContent = "立即抽奖";
 }
 
 function buildWinnerListByActivity(detail, winnerCount = 1) {
     const candidates = Array.isArray(detail?.activityUserList)
         ? detail.activityUserList.filter((item) => item.userStatus === "INIT")
         : [];
+    const count = Number(winnerCount || 0);
+
+    if (!Number.isInteger(count) || count <= 0) {
+        throw new Error("奖品库存无效，无法执行抽奖。");
+    }
 
     if (!candidates.length) {
         throw new Error("当前活动没有处于未开奖(INIT)状态的参与人。");
     }
 
+    if (candidates.length < count) {
+        throw new Error(`参与人数不足：当前奖品需抽取 ${count} 人，但仅有 ${candidates.length} 位可抽取参与人。`);
+    }
+
     return [...candidates]
         .sort(() => Math.random() - 0.5)
-        .slice(0, winnerCount)
+        .slice(0, count)
         .map((item) => ({
             userId: Number(item.userId),
             userName: item.userName
@@ -1834,9 +1874,9 @@ function bindLotteryDrawAction(state) {
         const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
         if (!currentActivity) return;
 
-        if (currentActivity.status === "END") {
-            // NOTE: the doc specifies checking if activity is END (can't draw then)
-            // It allows drawing otherwise.
+        if (isActivityEnded(currentActivity)) {
+            showInlineStatus(statusEl, "error", "活动已结束，无法抽奖。请重新选择进行中的活动。");
+            return;
         }
 
         const prize = currentActivity.activityPrizeList?.find(p => String(p.prizeId) === state.lottery.selectedPrizeId);
@@ -1846,7 +1886,8 @@ function bindLotteryDrawAction(state) {
         }
 
         try {
-            const winnerList = buildWinnerListByActivity(currentActivity, 1);
+            const drawCount = Number(prize.prizeAmount || 0);
+            const winnerList = buildWinnerListByActivity(currentActivity, drawCount);
             const payload = {
                 activityId: Number(state.lottery.selectedActivityId),
                 prizeId: Number(state.lottery.selectedPrizeId),
@@ -1859,11 +1900,11 @@ function bindLotteryDrawAction(state) {
             showInlineStatus(statusEl, "info", "正在提交抽奖请求...");
 
             await submitDrawPrize(payload);
-            showInlineStatus(statusEl, "success", "请求已提交，正在等待结果...");
+            showInlineStatus(statusEl, "success", `请求已提交，正在等待 ${winnerList.length} 人中奖结果...`);
 
-            pollWinningRecordsAfterDraw(state);
+            pollWinningRecordsAfterDraw(state, winnerList.length);
 
-            prize.prizeAmount -= 1;
+            prize.prizeAmount = 0;
             updateLotterySelectedPrizeSummary(state, prize);
 
         } catch (err) {
@@ -1876,13 +1917,9 @@ function bindLotteryDrawAction(state) {
 
 function bindLotteryRefreshActions(state) {
     const refreshActBtn = document.getElementById("refreshActivityRecords");
-    const refreshPrzBtn = document.getElementById("refreshPrizeRecords");
 
     if (refreshActBtn) {
         refreshActBtn.addEventListener("click", () => refreshActivityRecords(state));
-    }
-    if (refreshPrzBtn) {
-        refreshPrzBtn.addEventListener("click", () => refreshPrizeRecords(state));
     }
 }
 
@@ -1893,16 +1930,6 @@ async function refreshActivityRecords(state) {
         renderLotteryRecordTables(state);
     } catch (e) {
         console.warn("刷新活动名单失败", e);
-    }
-}
-
-async function refreshPrizeRecords(state) {
-    if (!state.lottery.selectedActivityId || !state.lottery.selectedPrizeId) return;
-    try {
-        state.lottery.prizeRecords = await fetchPrizeWinningRecords(state.lottery.selectedActivityId, state.lottery.selectedPrizeId);
-        renderLotteryRecordTables(state);
-    } catch (e) {
-        console.warn("刷新奖品名单失败", e);
     }
 }
 
@@ -1922,9 +1949,7 @@ function formatWinningTime(value) {
 
 function renderLotteryRecordTables(state) {
     const actBody = document.getElementById("lotteryActivityRecordsTable");
-    const przBody = document.getElementById("lotteryPrizeRecordsTable");
     const actCountEl = document.getElementById("lotteryActivityRecordsCount");
-    const przCountEl = document.getElementById("lotteryPrizeRecordsCount");
 
     if (actBody && state.lottery.activityRecords) {
         actCountEl.textContent = `${state.lottery.activityRecords.length} 条记录`;
@@ -1942,43 +1967,22 @@ function renderLotteryRecordTables(state) {
             `).join("");
         }
     }
-
-    if (przBody && state.lottery.prizeRecords) {
-        przCountEl.textContent = `${state.lottery.prizeRecords.length} 条记录`;
-        const sorted = [...state.lottery.prizeRecords].sort((a, b) => new Date(b.winningTime) - new Date(a.winningTime));
-        if (sorted.length === 0) {
-            przBody.innerHTML = '<tr><td colspan="4" class="admin-table-empty">暂无记录</td></tr>';
-        } else {
-            przBody.innerHTML = sorted.map(r => `
-                <tr>
-                    <td>${formatWinningTime(r.winningTime)}</td>
-                    <td>${escapeHtml(r.winnerName || "匿名")}</td>
-                    <td>${escapeHtml(r.prizeName || "--")}</td>
-                    <td>${escapeHtml(PRIZE_TIER_LABELS[r.prizeTier] || r.prizeTier || "--")}</td>
-                </tr>
-            `).join("");
-        }
-    }
 }
 
-async function pollWinningRecordsAfterDraw(state) {
+async function pollWinningRecordsAfterDraw(state, expectedIncrease) {
     const activityId = state.lottery.selectedActivityId;
-    const prizeId = state.lottery.selectedPrizeId;
     const statusEl = document.getElementById("lotteryDrawStatus");
+    const expectCount = Number(expectedIncrease || 1);
 
-    const initialPrizeCount = state.lottery.prizeRecords.length;
+    const initialActivityCount = state.lottery.activityRecords.length;
 
     for (let i = 0; i < state.lottery.pollingMaxAttempts; i += 1) {
-        const [activityRecords, prizeRecords] = await Promise.all([
-            fetchActivityWinningRecords(activityId),
-            fetchPrizeWinningRecords(activityId, prizeId)
-        ]);
+        const activityRecords = await fetchActivityWinningRecords(activityId);
 
         state.lottery.activityRecords = activityRecords || [];
-        state.lottery.prizeRecords = prizeRecords || [];
         renderLotteryRecordTables(state);
 
-        if (state.lottery.prizeRecords.length > initialPrizeCount) {
+        if (state.lottery.activityRecords.length >= initialActivityCount + expectCount) {
             showInlineStatus(statusEl, "success", "抽奖成功，中奖名单已刷新。");
             return;
         }

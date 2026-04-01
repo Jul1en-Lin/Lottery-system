@@ -31,12 +31,15 @@ body[data-page="admin-center"] {
     min-height: 100vh;
     display: flex;
     gap: 0;
-    overflow: hidden;
+    overflow: visible;
     background: var(--sidebar-rail-bg);
 }
 
 .admin-sidebar {
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
     z-index: 10;
     width: 92px;
     flex-shrink: 0;
@@ -330,13 +333,17 @@ body[data-page="admin-center"] {
     padding: 28px 30px 34px 34px;
     background: var(--admin-content-bg);
     border-radius: 32px 0 0 32px;
-    margin-left: -1px;
+    margin-left: 92px;
+    transition: margin-left var(--sidebar-expand-duration) var(--sidebar-expand-ease);
+}
+
+.admin-sidebar:hover + .admin-content-shell,
+.admin-sidebar.is-open + .admin-content-shell {
+    margin-left: 252px;
 }
 
 .admin-topbar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -796,6 +803,11 @@ body[data-page="admin-center"] {
     align-items: start;
 }
 
+.list-item-main {
+    display: grid;
+    gap: 4px;
+}
+
 .prize-item-top {
     gap: 16px;
 }
@@ -861,6 +873,14 @@ body[data-page="admin-center"] {
     color: var(--panel-muted);
     font-size: 0.9rem;
     line-height: 1.65;
+}
+
+.stack-list-item .list-item-description {
+    margin-top: 2px;
+}
+
+.stack-list-item .list-item-meta {
+    margin-top: 4px;
 }
 
 .prize-item p {
@@ -1827,6 +1847,7 @@ body[data-page="admin-center"] {
 
     .admin-content-shell {
         padding: 84px 18px 24px;
+        margin-left: 0;
     }
 
     .admin-topbar {
