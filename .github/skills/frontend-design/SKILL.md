@@ -1,41 +1,147 @@
 ---
 name: frontend-design
-description: 创建独特的、生产级别的高质量前端界面。当用户要求构建网页组件、页面、作品、海报或应用程序时使用此技能（例如网站、落地页、仪表盘、React 组件、HTML/CSS 布局，或对任何网页 UI 进行样式美化）。生成富有创意、精致的代码和 UI 设计，避免千篇一律的 AI 审美。
+description: Create distinctive, production-grade frontend interfaces with high design quality. Generates creative, polished code that avoids generic AI aesthetics. Use when the user asks to build web components, pages, artifacts, posters, or applications, or when any design skill requires project context.
+license: Apache 2.0. Based on Anthropic's frontend-design skill. See NOTICE.md for attribution.
 ---
 
-本技能指导创建独特的、生产级别的前端界面，避免千篇一律的"AI 流水线"审美。实现真正可用的代码，对美学细节和创意选择给予极致关注。
+This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
 
-用户提供前端需求：需要构建的组件、页面、应用程序或界面。他们可能会提供关于用途、目标受众或技术约束的背景信息。
+## Context Gathering Protocol
 
-## 设计思维
+Design skills produce generic output without project context. You MUST have confirmed design context before doing any design work.
 
-在编码之前，理解上下文并确定一个**大胆**的美学方向：
-- **目的**：这个界面解决什么问题？谁在使用它？
-- **基调**：选择一个极端方向：极简主义、极繁主义混沌风、复古未来主义、有机自然风、奢华精致风、趣味玩具风、杂志编辑风、粗野主义原始风、装饰艺术几何风、柔和粉彩风、工业实用风等。有太多风格可供选择。以这些为灵感，但设计出真正符合美学方向的作品。
-- **约束**：技术要求（框架、性能、可访问性）。
-- **差异化**：什么让这个设计令人**难忘**？用户会记住的那一个亮点是什么？
+**Required context** — every design skill needs at minimum:
+- **Target audience**: Who uses this product and in what context?
+- **Use cases**: What jobs are they trying to get done?
+- **Brand personality/tone**: How should the interface feel?
 
-**关键**：选择一个清晰的概念方向并精准执行。大胆的极繁主义和精致的极简主义都可行——关键在于意图明确，而非强度高低。
+Individual skills may require additional context — check the skill's preparation section for specifics.
 
-然后实现可工作的代码（HTML/CSS/JS、React、Vue 等），需满足：
-- 生产级别且功能完善
-- 视觉冲击力强且令人难忘
-- 具有清晰美学观点的整体协调性
-- 每个细节都精雕细琢
+**CRITICAL**: You cannot infer this context by reading the codebase. Code tells you what was built, not who it's for or what it should feel like. Only the creator can provide this context.
 
-## 前端美学指南
+**Gathering order:**
+1. **Check current instructions (instant)**: If your loaded instructions already contain a **Design Context** section, proceed immediately.
+2. **Check .impeccable.md (fast)**: If not in instructions, read `.impeccable.md` from the project root. If it exists and contains the required context, proceed.
+3. **Run teach-impeccable (REQUIRED)**: If neither source has context, you MUST run /teach-impeccable NOW before doing anything else. Do NOT skip this step. Do NOT attempt to infer context from the codebase instead.
 
-重点关注：
-- **字体排版**：选择美观、独特、有趣的字体。避免使用 Arial 和 Inter 等通用字体；选择能提升前端美感的独特字体；出人意料的、有个性的字体选择。将独特的展示字体与精致的正文字体搭配。
-- **色彩与主题**：坚持统一的美学风格。使用 CSS 变量保持一致性。主导色配合鲜明的强调色，效果优于胆怯的、平均分布的配色方案。
-- **动效**：使用动画实现效果和微交互。HTML 优先使用纯 CSS 解决方案。React 可用时使用 Motion 库。聚焦高影响力时刻：一个精心编排的页面加载动画配合错落有致的渐显效果（animation-delay）比零散的微交互更令人愉悦。使用能带来惊喜的滚动触发和悬停状态。
-- **空间构图**：出人意料的布局。不对称。重叠。对角线流动。打破网格的元素。大量留白或可控的密集感。
-- **背景与视觉细节**：营造氛围和层次感，而非默认使用纯色。添加与整体美学相匹配的情境效果和纹理。运用创意形式如渐变网格、噪点纹理、几何图案、叠加透明度、戏剧性阴影、装饰边框、自定义光标和颗粒覆盖层。
+---
 
-**绝不**使用千篇一律的 AI 生成审美，如过度使用的字体（Inter、Roboto、Arial、系统字体）、陈词滥调的配色方案（尤其是白底紫色渐变）、可预测的布局和组件模式，以及缺乏情境特色的模板化设计。
+## Design Direction
 
-创造性地诠释并做出出人意料的选择，让设计真正契合情境。没有两个设计应该雷同。在浅色和深色主题、不同字体、不同美学之间变换。**绝不**在多次生成中趋同于常见选择（例如 Space Grotesk）。
+Commit to a BOLD aesthetic direction:
+- **Purpose**: What problem does this interface solve? Who uses it?
+- **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
+- **Constraints**: Technical requirements (framework, performance, accessibility).
+- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
 
-**重要**：让实现复杂度匹配美学愿景。极繁主义设计需要精心编写的代码，包含大量动画和效果。极简主义或精致设计需要克制、精准，并仔细关注间距、字体排版和微妙细节。优雅来自于对愿景的出色执行。
+**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work—the key is intentionality, not intensity.
 
-记住：你有能力创造非凡的创意作品。不要有所保留，展示当跳出思维定式并全情投入独特愿景时能真正创造的东西。
+Then implement working code that is:
+- Production-grade and functional
+- Visually striking and memorable
+- Cohesive with a clear aesthetic point-of-view
+- Meticulously refined in every detail
+
+## Frontend Aesthetics Guidelines
+
+### Typography
+→ *Consult [typography reference](reference/typography.md) for scales, pairing, and loading strategies.*
+
+Choose fonts that are beautiful, unique, and interesting. Pair a distinctive display font with a refined body font.
+
+**DO**: Use a modular type scale with fluid sizing (clamp)
+**DO**: Vary font weights and sizes to create clear visual hierarchy
+**DON'T**: Use overused fonts—Inter, Roboto, Arial, Open Sans, system defaults
+**DON'T**: Use monospace typography as lazy shorthand for "technical/developer" vibes
+**DON'T**: Put large icons with rounded corners above every heading—they rarely add value and make sites look templated
+
+### Color & Theme
+→ *Consult [color reference](reference/color-and-contrast.md) for OKLCH, palettes, and dark mode.*
+
+Commit to a cohesive palette. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
+
+**DO**: Use modern CSS color functions (oklch, color-mix, light-dark) for perceptually uniform, maintainable palettes
+**DO**: Tint your neutrals toward your brand hue—even a subtle hint creates subconscious cohesion
+**DON'T**: Use gray text on colored backgrounds—it looks washed out; use a shade of the background color instead
+**DON'T**: Use pure black (#000) or pure white (#fff)—always tint; pure black/white never appears in nature
+**DON'T**: Use the AI color palette: cyan-on-dark, purple-to-blue gradients, neon accents on dark backgrounds
+**DON'T**: Use gradient text for "impact"—especially on metrics or headings; it's decorative rather than meaningful
+**DON'T**: Default to dark mode with glowing accents—it looks "cool" without requiring actual design decisions
+
+### Layout & Space
+→ *Consult [spatial reference](reference/spatial-design.md) for grids, rhythm, and container queries.*
+
+Create visual rhythm through varied spacing—not the same padding everywhere. Embrace asymmetry and unexpected compositions. Break the grid intentionally for emphasis.
+
+**DO**: Create visual rhythm through varied spacing—tight groupings, generous separations
+**DO**: Use fluid spacing with clamp() that breathes on larger screens
+**DO**: Use asymmetry and unexpected compositions; break the grid intentionally for emphasis
+**DON'T**: Wrap everything in cards—not everything needs a container
+**DON'T**: Nest cards inside cards—visual noise, flatten the hierarchy
+**DON'T**: Use identical card grids—same-sized cards with icon + heading + text, repeated endlessly
+**DON'T**: Use the hero metric layout template—big number, small label, supporting stats, gradient accent
+**DON'T**: Center everything—left-aligned text with asymmetric layouts feels more designed
+**DON'T**: Use the same spacing everywhere—without rhythm, layouts feel monotonous
+
+### Visual Details
+**DO**: Use intentional, purposeful decorative elements that reinforce brand
+**DON'T**: Use glassmorphism everywhere—blur effects, glass cards, glow borders used decoratively rather than purposefully
+**DON'T**: Use rounded elements with thick colored border on one side—a lazy accent that almost never looks intentional
+**DON'T**: Use sparklines as decoration—tiny charts that look sophisticated but convey nothing meaningful
+**DON'T**: Use rounded rectangles with generic drop shadows—safe, forgettable, could be any AI output
+**DON'T**: Use modals unless there's truly no better alternative—modals are lazy
+
+### Motion
+→ *Consult [motion reference](reference/motion-design.md) for timing, easing, and reduced motion.*
+
+Focus on high-impact moments: one well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions.
+
+**DO**: Use motion to convey state changes—entrances, exits, feedback
+**DO**: Use exponential easing (ease-out-quart/quint/expo) for natural deceleration
+**DO**: For height animations, use grid-template-rows transitions instead of animating height directly
+**DON'T**: Animate layout properties (width, height, padding, margin)—use transform and opacity only
+**DON'T**: Use bounce or elastic easing—they feel dated and tacky; real objects decelerate smoothly
+
+### Interaction
+→ *Consult [interaction reference](reference/interaction-design.md) for forms, focus, and loading patterns.*
+
+Make interactions feel fast. Use optimistic UI—update immediately, sync later.
+
+**DO**: Use progressive disclosure—start simple, reveal sophistication through interaction (basic options first, advanced behind expandable sections; hover states that reveal secondary actions)
+**DO**: Design empty states that teach the interface, not just say "nothing here"
+**DO**: Make every interactive surface feel intentional and responsive
+**DON'T**: Repeat the same information—redundant headers, intros that restate the heading
+**DON'T**: Make every button primary—use ghost buttons, text links, secondary styles; hierarchy matters
+
+### Responsive
+→ *Consult [responsive reference](reference/responsive-design.md) for mobile-first, fluid design, and container queries.*
+
+**DO**: Use container queries (@container) for component-level responsiveness
+**DO**: Adapt the interface for different contexts—don't just shrink it
+**DON'T**: Hide critical functionality on mobile—adapt the interface, don't amputate it
+
+### UX Writing
+→ *Consult [ux-writing reference](reference/ux-writing.md) for labels, errors, and empty states.*
+
+**DO**: Make every word earn its place
+**DON'T**: Repeat information users can already see
+
+---
+
+## The AI Slop Test
+
+**Critical quality check**: If you showed this interface to someone and said "AI made this," would they believe you immediately? If yes, that's the problem.
+
+A distinctive interface should make someone ask "how was this made?" not "which AI made this?"
+
+Review the DON'T guidelines above—they are the fingerprints of AI-generated work from 2024-2025.
+
+---
+
+## Implementation Principles
+
+Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details.
+
+Interpret creatively and make unexpected choices that feel genuinely designed for the context. No design should be the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices across generations.
+
+Remember: Claude is capable of extraordinary creative work. Don't hold back—show what can truly be created when thinking outside the box and committing fully to a distinctive vision.

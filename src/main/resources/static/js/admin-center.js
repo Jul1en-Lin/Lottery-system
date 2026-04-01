@@ -61,7 +61,9 @@ const STORAGE_KEYS = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-    void initializeAdminCenter();
+    initializeAdminCenter().catch((error) => {
+        console.error("Admin center initialization failed:", error);
+    });
 });
 
 async function initializeAdminCenter() {
@@ -100,7 +102,20 @@ async function initializeAdminCenter() {
         members: [],
         memberFilter: "",
         memberLoading: false,
-        memberLoadError: ""
+        memberLoadError: "",
+        lottery: {
+            subview: "draw",
+            selectedActivityId: "",
+            selectedPrizeId: "",
+            drawing: false,
+            drawStatusText: "",
+            activityRecords: [],
+            prizeRecords: [],
+            recordsLoading: false,
+            pollingTimer: 0,
+            pollingMaxAttempts: 6,
+            pollingInterval: 1500
+        }
     };
 
     cacheElements(state);
@@ -114,9 +129,16 @@ async function initializeAdminCenter() {
     bindMemberFilter(state);
     bindLogout(state);
     startEventCountdown(state);
+    bindLotterySubview(state);
+    bindLotteryActivitySwitch(state);
+    bindLotteryPrizeSwitch(state);
+    bindLotteryDrawAction(state);
+    bindLotteryRefreshActions(state);
     renderAll(state);
     await loadPrizes(state);
     await loadMembers(state);
+    /* 加载真实活动列表（覆盖 localStorage 中的历史缓存） */
+    await loadAdminActivityList(state);
 }
 
 function readAdminSession() {
@@ -260,6 +282,11 @@ function bindModuleSwitching(state) {
             eyebrow: "Member Module",
             title: "人员管理",
             subtitle: "当前面板只展示人员列表与普通用户注册流程。"
+        },
+        lottery: {
+            eyebrow: "Lottery Module",
+            title: "抽奖执行与中奖公示",
+            subtitle: "在一个模块内完成抽奖、活动公示、奖品维度查询。"
         }
     };
 
@@ -278,9 +305,15 @@ function bindModuleSwitching(state) {
         });
 
         const panelMeta = metadata[nextId];
-        state.elements.topbarEyebrow.textContent = panelMeta.eyebrow;
-        state.elements.topbarTitle.textContent = panelMeta.title;
-        state.elements.topbarSubtitle.textContent = panelMeta.subtitle;
+        if (state.elements.topbarEyebrow) {
+            state.elements.topbarEyebrow.textContent = panelMeta.eyebrow;
+        }
+        if (state.elements.topbarTitle) {
+            state.elements.topbarTitle.textContent = panelMeta.title;
+        }
+        if (state.elements.topbarSubtitle) {
+            state.elements.topbarSubtitle.textContent = panelMeta.subtitle;
+        }
 
         if (window.location.hash !== `#${nextId}`) {
             history.replaceState(null, "", `#${nextId}`);
@@ -457,7 +490,8 @@ function bindActivityForm(state) {
                 body: JSON.stringify(payload)
             });
 
-            const createdActivityId = result?.data?.activityId || `ACT-${Date.now()}`;
+            const resultData = unwrapApiData(result);
+            const createdActivityId = resultData?.activityId || `ACT-${Date.now()}`;
             state.activities.unshift({
                 id: createdActivityId,
                 name: payload.name,
@@ -634,12 +668,13 @@ function bindPrizeForm(state) {
                 method: "POST",
                 body: formData
             });
+            const prizeId = unwrapApiData(result);
 
             await loadPrizes(state);
             renderMetrics(state);
             form.reset();
             renderPrizeSelectedFile(state, null);
-            showInlineStatus(state.elements.prizeStatusAlert, "success", `奖品创建成功，奖品 ID：${result.data}。`);
+            showInlineStatus(state.elements.prizeStatusAlert, "success", `奖品创建成功，奖品 ID：${prizeId}。`);
         } catch (error) {
             showInlineStatus(state.elements.prizeStatusAlert, "error", error.message || "奖品创建失败，请稍后重试。");
         } finally {
@@ -728,11 +763,12 @@ function bindMemberForm(state) {
                 },
                 body: JSON.stringify(payload)
             });
+            const resultData = unwrapApiData(result);
 
             await loadMembers(state);
             renderMetrics(state);
             form.reset();
-            showInlineStatus(state.elements.memberStatusAlert, "success", `普通用户注册成功，用户 ID：${result.data.id}。`);
+            showInlineStatus(state.elements.memberStatusAlert, "success", `普通用户注册成功，用户 ID：${resultData?.id || "--"}。`);
         } catch (error) {
             showInlineStatus(state.elements.memberStatusAlert, "error", error.message || "普通用户注册失败，请稍后重试。");
         } finally {
@@ -761,86 +797,34 @@ function bindLogout(state) {
 }
 
 function bindActivityDetailInteractions(state) {
-    state.elements.activityList?.addEventListener("click", (event) => {
+    state.elements.activityList?.addEventListener("click", async (event) => {
         const item = event.target.closest(".stack-list-item[data-activity-id]");
         if (!item) {
             return;
         }
         const nextId = String(item.dataset.activityId || "").trim();
         if (!nextId || nextId === state.selectedActivityId) {
+            document.querySelector('[data-activity-subview="detail"]')?.click();
             return;
         }
         state.selectedActivityId = nextId;
         state.eventView.spotlightIndex = 0;
         renderActivities(state);
         renderActivityDetail(state);
-    });
 
-    state.elements.eventPrizeGrid?.addEventListener("click", (event) => {
-        const card = event.target.closest("button[data-prize-index]");
-        if (!card) {
-            return;
+        document.querySelector('[data-activity-subview="detail"]')?.click();
+
+        /* 选中活动时，从后端补全详情（奖品 + 参与人列表） */
+        try {
+            await loadAdminActivityDetail(state, nextId);
+        } catch (error) {
+            showInlineStatus(state.elements.activityStatusAlert, "error", error.message || "活动详情加载失败，请稍后重试。");
         }
-        const nextIndex = Number(card.dataset.prizeIndex || 0);
-        state.eventView.spotlightIndex = Number.isInteger(nextIndex) && nextIndex >= 0 ? nextIndex : 0;
-        renderActivityDetail(state);
-    });
-
-    state.elements.eventDrawButton?.addEventListener("click", async () => {
-        const selectedActivity = getSelectedActivity(state);
-        if (!selectedActivity) {
-            state.elements.eventDrawStatus.textContent = "请先创建或选择一个活动，再进行抽奖。";
-            return;
-        }
-
-        if (state.eventView.remainingDraws <= 0) {
-            state.elements.eventDrawStatus.textContent = "今日抽奖次数已用完，邀请好友可解锁额外机会。";
-            return;
-        }
-
-        const prizePool = resolveActivityPrizeItems(state, selectedActivity);
-        if (!prizePool.length) {
-            state.elements.eventDrawStatus.textContent = "当前活动暂无可抽取奖品，请先配置活动奖品。";
-            return;
-        }
-
-        const drawButton = state.elements.eventDrawButton;
-        const wheel = state.elements.eventWheel;
-        setButtonBusy(drawButton, true);
-        wheel?.classList.add("is-spinning");
-
-        await sleep(1100);
-
-        const winnerName = resolveRandomWinnerName(state);
-        const drawResult = prizePool[Math.floor(Math.random() * prizePool.length)];
-        state.eventView.remainingDraws = Math.max(0, state.eventView.remainingDraws - 1);
-        state.eventView.participantBoost += Math.floor(Math.random() * 3) + 1;
-        state.eventView.inviteCount += 1;
-        state.eventView.spotlightIndex = drawResult.index;
-        state.eventView.winnerFeed.unshift({
-            winner: winnerName,
-            reward: drawResult.name,
-            time: new Intl.DateTimeFormat("zh-CN", {
-                hour: "2-digit",
-                minute: "2-digit"
-            }).format(new Date())
-        });
-        state.eventView.winnerFeed = state.eventView.winnerFeed.slice(0, 8);
-
-        wheel?.classList.remove("is-spinning");
-        setButtonBusy(drawButton, false);
-        state.elements.eventDrawStatus.textContent = `${winnerName} 抽中了 ${drawResult.name}，剩余 ${state.eventView.remainingDraws} 次机会。`;
-        renderActivityDetail(state);
     });
 }
 
 function startEventCountdown(state) {
-    if (state.eventView.countdownTimer) {
-        window.clearInterval(state.eventView.countdownTimer);
-    }
-    state.eventView.countdownTimer = window.setInterval(() => {
-        updateEventCountdown(state);
-    }, 1000);
+    // 倒计时模块已移除
 }
 
 function renderAll(state) {
@@ -896,15 +880,45 @@ function renderActivityDetail(state) {
     const participantCount = resolveParticipantCount(state, selectedActivity);
     const prizeItems = resolveActivityPrizeItems(state, selectedActivity);
 
-    state.elements.activityDetailName.textContent = selectedActivity?.name || "请先创建活动";
-    state.elements.activityDetailDescription.textContent = selectedActivity?.description || "活动说明会在这里显示。你可以在左侧活动列表切换不同活动，查看详细奖品与中奖动态。";
+    state.elements.activityDetailName.textContent = selectedActivity?.name || "请先从左侧选择活动或新建抽奖活动";
+    state.elements.activityDetailDescription.textContent = selectedActivity?.description || "活动说明会在这里显示。";
     state.elements.eventParticipantCount.textContent = String(participantCount);
-    state.elements.eventRemainingDraws.textContent = String(Math.max(0, state.eventView.remainingDraws));
-    state.elements.eventInviteCount.textContent = String(state.eventView.inviteCount);
+
+    const prizeKindsCountEl = document.getElementById("eventPrizeKindsCount");
+    if (prizeKindsCountEl) prizeKindsCountEl.textContent = String(prizeItems.length);
+
+    const eventStatusPill = document.getElementById("eventStatusPill");
+    if (eventStatusPill && selectedActivity) {
+        eventStatusPill.textContent = selectedActivity.status || "未发布";
+        eventStatusPill.className = "status-pill " + resolveStatusClass(selectedActivity.status);
+    }
+
+    const eventActivityStatus = document.getElementById("eventActivityStatus");
+    if (eventActivityStatus && selectedActivity) {
+        eventActivityStatus.textContent = selectedActivity.status || "未发布";
+    }
 
     renderEventPrizeCards(state, prizeItems);
-    renderWinnerTicker(state);
-    updateEventCountdown(state);
+    renderEventParticipantList(state, selectedActivity);
+}
+
+function renderEventParticipantList(state, selectedActivity) {
+    const listEl = document.getElementById("eventParticipantList");
+    if (!listEl) return;
+
+    const participants = selectedActivity?.activityUserList;
+    if (!Array.isArray(participants) || !participants.length) {
+        listEl.innerHTML = '<tr><td colspan="3" class="admin-table-empty">暂无参与人</td></tr>';
+        return;
+    }
+
+    listEl.innerHTML = participants.map((p) => `
+        <tr>
+            <td>${escapeHtml(String(p.userId))}</td>
+            <td>${escapeHtml(p.userName || "匿名用户")}</td>
+            <td><span class="status-pill status-live">${escapeHtml(p.userStatus || "INIT")}</span></td>
+        </tr>
+    `).join("");
 }
 
 function renderEventPrizeCards(state, prizeItems) {
@@ -913,86 +927,32 @@ function renderEventPrizeCards(state, prizeItems) {
     }
 
     if (!prizeItems.length) {
-        state.elements.eventPrizeGrid.innerHTML = '<article class="event-prize-card empty"><p>暂无奖品信息，请先配置活动奖品。</p></article>';
-        updatePrizeSpotlight(state, null);
+        state.elements.eventPrizeGrid.innerHTML = '<div class="event-prize-card empty"><p>暂无奖品信息，请先配置活动奖品。</p></div>';
         return;
     }
 
-    const maxIndex = prizeItems.length - 1;
-    if (state.eventView.spotlightIndex > maxIndex) {
-        state.eventView.spotlightIndex = 0;
-    }
-
     state.elements.eventPrizeGrid.innerHTML = prizeItems.map((prize, index) => `
-        <button class="event-prize-card ${index === state.eventView.spotlightIndex ? "is-active" : ""}" data-prize-index="${index}" type="button">
+        <div class="event-prize-card" data-prize-index="${index}" data-prize-id="${prize.prizeId || ""}">
             <span class="event-prize-card-badge">${escapeHtml(resolvePrizeTierLabel(prize.tier))}</span>
             <strong>${escapeHtml(prize.name)}</strong>
             <p>${escapeHtml(prize.description)}</p>
             <div class="event-prize-card-meta">
                 <span>库存 ${prize.quantity}</span>
-                <span>概率 ${prize.probability}</span>
             </div>
-        </button>
+        </div>
     `).join("");
-
-    updatePrizeSpotlight(state, prizeItems[state.eventView.spotlightIndex] || prizeItems[0]);
 }
 
 function updatePrizeSpotlight(state, prize) {
-    if (!state.elements.eventPrizeSpotlightName || !state.elements.eventPrizeSpotlightImage) {
-        return;
-    }
-
-    if (!prize) {
-        state.elements.eventPrizeSpotlightName.textContent = "奖品详情";
-        state.elements.eventPrizeSpotlightMeta.textContent = "库存 0 · 概率 0%";
-        state.elements.eventPrizeSpotlightDesc.textContent = "点击左侧奖品卡片查看详细说明。";
-        state.elements.eventPrizeSpotlightImage.src = createPrizePlaceholderDataUri("暂无奖品", 0);
-        state.elements.eventPrizeSpotlightImage.alt = "暂无奖品";
-        return;
-    }
-
-    state.elements.eventPrizeSpotlightName.textContent = prize.name;
-    state.elements.eventPrizeSpotlightMeta.textContent = `库存 ${prize.quantity} · 概率 ${prize.probability} · 估值 ${formatPrice(prize.price)}`;
-    state.elements.eventPrizeSpotlightDesc.textContent = prize.description;
-    state.elements.eventPrizeSpotlightImage.src = prize.imageUrl || createPrizePlaceholderDataUri(prize.name, prize.index);
-    state.elements.eventPrizeSpotlightImage.alt = prize.name;
+    // 聚光灯模块已移除
 }
 
 function renderWinnerTicker(state) {
-    if (!state.elements.eventWinnerTicker) {
-        return;
-    }
-
-    const winners = state.eventView.winnerFeed;
-    const shouldAnimate = winners.length >= 4;
-    const renderList = shouldAnimate ? winners.concat(winners) : winners;
-
-    state.elements.eventWinnerTicker.classList.toggle("is-animated", shouldAnimate);
-    state.elements.eventWinnerTicker.innerHTML = renderList.map((winner) => `
-        <li>
-            <span>${escapeHtml(winner.winner)}</span>
-            <strong>${escapeHtml(winner.reward)}</strong>
-            <time>${escapeHtml(winner.time)}</time>
-        </li>
-    `).join("");
+    // 最新中奖记录模块已移除
 }
 
 function updateEventCountdown(state) {
-    if (!state.elements.eventCountdown) {
-        return;
-    }
-
-    const remaining = state.eventView.countdownEndTime - Date.now();
-    if (remaining <= 0) {
-        state.elements.eventCountdown.textContent = "00:00:00";
-        return;
-    }
-
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-    state.elements.eventCountdown.textContent = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    // 倒计时模块已移除
 }
 
 function renderPrizes(state) {
@@ -1093,7 +1053,7 @@ async function loadMembers(state) {
 
     try {
         const result = await requestJson(`/user/getListInfo${query}`);
-        state.members = normalizeMembers(Array.isArray(result?.data) ? result.data : result);
+        state.members = normalizeMembers(unwrapApiData(result));
         state.memberLoading = false;
         syncActivityComposeOptions(state);
         renderMembers(state);
@@ -1119,7 +1079,7 @@ async function loadPrizes(state) {
 
     try {
         const result = await requestJson("/prize/getList?current=1&size=10");
-        const pageData = result?.data ?? result;
+        const pageData = unwrapApiData(result);
         state.prizes = normalizePrizes(pageData?.records);
         state.prizeLoading = false;
         syncActivityComposeOptions(state);
@@ -1247,6 +1207,13 @@ async function requestJson(url, options) {
     return body;
 }
 
+function unwrapApiData(payload) {
+    if (payload && typeof payload === "object" && "data" in payload) {
+        return payload.data;
+    }
+    return payload;
+}
+
 function formatDateTime(value) {
     if (!value) {
         return "待定";
@@ -1356,9 +1323,8 @@ function getSelectedActivity(state) {
 }
 
 function resolveParticipantCount(state, selectedActivity) {
-    const baseline = 1000 + state.members.length * 6;
-    const participantSize = Array.isArray(selectedActivity?.activityUserList) ? selectedActivity.activityUserList.length : 0;
-    return baseline + participantSize * 12 + state.eventView.participantBoost;
+    // 直接返回活动真实参与人数，不使用虚假倍增公式。
+    return Array.isArray(selectedActivity?.activityUserList) ? selectedActivity.activityUserList.length : 0;
 }
 
 function resolveActivityPrizeItems(state, selectedActivity) {
@@ -1367,12 +1333,13 @@ function resolveActivityPrizeItems(state, selectedActivity) {
         const matchedPrize = state.prizes.find((prize) => Number(prize.id) === Number(item.prizeId));
         return {
             index,
-            name: matchedPrize?.name || `奖品 ${index + 1}`,
+            prizeId: item.prizeId,
+            name: matchedPrize?.name || item.prizeName || `奖品 ${index + 1}`,
             description: matchedPrize?.description || "暂无奖品描述",
             quantity: Number(item.prizeAmount || 0),
             tier: item.prizeTiers || "TIER_3",
-            price: Number(matchedPrize?.price || 0),
-            imageUrl: matchedPrize?.imageUrl || ""
+            price: Number(matchedPrize?.price || item.price || 0),
+            imageUrl: matchedPrize?.imageUrl || item.imageUrl || ""
         };
     }).filter((item) => item.quantity > 0);
 
@@ -1468,4 +1435,556 @@ function bindActivitySubView(state) {
     });
 
     setActivitySubview(state.activitySubview);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   真实 API 对接：活动列表 / 活动详情 / 抽奖 / 中奖记录
+═══════════════════════════════════════════════════════════════ */
+
+/**
+ * 将 /activity/queryList 返回的摘要映射为 state.activities 条目格式。
+ */
+function mapActivitySummaryToAdminState(activity) {
+    return {
+        id: activity.activityId,
+        name: activity.activityName || "未命名活动",
+        description: activity.description || "暂无活动说明",
+        activityUserList: [],
+        activityPrizeList: [],
+        createdAt: "",
+        status: activity.valid ? "进行中" : "已结束",
+        rawStatus: activity.valid ? "START" : "END"
+    };
+}
+
+/**
+ * 从后端分页接口加载活动摘要列表，覆盖 state.activities。
+ * 接口：GET /activity/queryList?current=1&size=50
+ */
+async function loadAdminActivityList(state, current, size) {
+    current = current || 1;
+    size = size || 50;
+    try {
+        const payload = await requestJson(
+            `/activity/queryList?current=${encodeURIComponent(current)}&size=${encodeURIComponent(size)}`
+        );
+        const pageData = unwrapApiData(payload) || {};
+        const records = Array.isArray(pageData.records) ? pageData.records : [];
+
+        /* 只有在接口返回数据时才覆盖，以免网络异常清空本地创建的活动 */
+        if (records.length) {
+            state.activities = records.map(mapActivitySummaryToAdminState);
+            if (!state.selectedActivityId && state.activities.length) {
+                state.selectedActivityId = String(state.activities[0].id);
+            }
+            persistState(STORAGE_KEYS.activities, state.activities);
+        }
+
+        renderActivities(state);
+        renderActivityDetail(state);
+        renderMetrics(state);
+
+        /* 如已选中活动，自动补全其详情 */
+        if (state.selectedActivityId) {
+            try {
+                await loadAdminActivityDetail(state, state.selectedActivityId);
+                await loadAdminWinningRecords(state, state.selectedActivityId);
+            } catch (_) {
+                /* 详情加载失败不影响列表渲染 */
+            }
+        }
+    } catch (error) {
+        /* 接口未就绪或网络失败时，静默降级：保留本地 localStorage 数据 */
+        showInlineStatus(
+            state.elements.activityStatusAlert,
+            "error",
+            error.message || "活动列表加载失败，将使用本地缓存数据。"
+        );
+        renderActivities(state);
+        renderActivityDetail(state);
+        renderMetrics(state);
+    }
+}
+
+/**
+ * 从后端加载指定活动的完整详情，补齐 state.activities 中对应条目。
+ * 接口：GET /activity/getDetail?activityId={id}
+ */
+async function loadAdminActivityDetail(state, activityId) {
+    const payload = await requestJson(
+        `/activity/getDetail?activityId=${encodeURIComponent(activityId)}`
+    );
+    const detail = unwrapApiData(payload);
+
+    const index = state.activities.findIndex(
+        (a) => String(a.id) === String(activityId)
+    );
+
+    const normalized = {
+        id: detail.activityId,
+        name: detail.activityName || "未命名活动",
+        description: detail.description || "暂无活动说明",
+        activityUserList: Array.isArray(detail.activityUserList) ? detail.activityUserList : [],
+        activityPrizeList: Array.isArray(detail.activityPrizeList) ? detail.activityPrizeList : [],
+        createdAt: (index >= 0 ? state.activities[index].createdAt : "") || "",
+        status: detail.status === "START" ? "进行中" : "已结束",
+        rawStatus: detail.status
+    };
+
+    if (index >= 0) {
+        state.activities[index] = normalized;
+    } else {
+        state.activities.unshift(normalized);
+    }
+
+    state.selectedActivityId = String(detail.activityId);
+    persistState(STORAGE_KEYS.activities, state.activities);
+    renderActivities(state);
+    renderActivityDetail(state);
+    renderMetrics(state);
+}
+
+/**
+ * 构建中奖名单：从 activityUserList 中筛选 userStatus === 'INIT' 用户随机抽取。
+ */
+function buildAdminWinnerList(selectedActivity, prizeAmount, count) {
+    count = count || 1;
+    const candidates = Array.isArray(selectedActivity?.activityUserList)
+        ? selectedActivity.activityUserList.filter((u) => u.userStatus === "INIT")
+        : [];
+    const winnerCount = Math.min(count, Number(prizeAmount || 0), candidates.length);
+
+    if (winnerCount <= 0) {
+        throw new Error("暂无可抽取用户（userStatus 为 INIT）或奖品库存不足。");
+    }
+
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, winnerCount).map((u) => ({
+        userId: u.userId,
+        userName: u.userName
+    }));
+}
+
+/**
+ * 执行后台抽奖：调用 POST /drawPrize。
+ */
+async function executeAdminDrawPrize(state) {
+    const selectedActivity = getSelectedActivity(state);
+    const activePrizeButton = state.elements.eventPrizeGrid?.querySelector(".event-prize-card.is-active");
+
+    if (!selectedActivity) {
+        throw new Error("请先选择一个活动，再进行抽奖。");
+    }
+    if (!activePrizeButton) {
+        throw new Error("请先选择要抽取的奖品。");
+    }
+    if (selectedActivity.rawStatus === "END") {
+        throw new Error("活动已结束，无法抽奖。");
+    }
+
+    /* 从活动详情中匹配当前选中奖品 */
+    const prize = (selectedActivity.activityPrizeList || []).find(
+        (item) => String(item.prizeId) === String(activePrizeButton.dataset.prizeId)
+    );
+    if (!prize) {
+        throw new Error("未找到当前选中奖品信息，请重新进入该活动详情后再抽奖。");
+    }
+
+    const winnerList = buildAdminWinnerList(selectedActivity, prize.prizeAmount, 1);
+
+    const payload = await requestJson("/drawPrize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            activityId: Number(selectedActivity.id),
+            prizeId: Number(activePrizeButton.dataset.prizeId),
+            winningTime: new Date().toISOString(),
+            prizeTiers: activePrizeButton.dataset.prizeTiers,
+            winnerList
+        })
+    });
+
+    if (unwrapApiData(payload) === true) {
+        if (state.elements.eventDrawStatus) {
+            const winner = winnerList[0];
+            state.elements.eventDrawStatus.textContent =
+                `抽奖成功！${escapeHtml(winner?.userName || "用户")} 抽中了 ${escapeHtml(prize.prizeName || "奖品")}。`;
+        }
+        /* 刷新详情与中奖动态 */
+        await loadAdminActivityDetail(state, selectedActivity.id);
+        await loadAdminWinningRecords(state, selectedActivity.id);
+    } else {
+        throw new Error("抽奖请求已提交，但服务器返回失败，请稍后查看记录。");
+    }
+}
+
+/**
+ * 加载后台中奖记录，填充 #eventWinnerTicker。
+ * 接口：POST /getWinningRecords
+ */
+async function loadAdminWinningRecords(state, activityId) {
+    try {
+        const payload = await requestJson("/getWinningRecords", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ activityId: Number(activityId) })
+        });
+
+        const records = unwrapApiData(payload);
+        const normalizedRecords = Array.isArray(records) ? records : [];
+        state.eventView.winnerFeed = normalizedRecords.slice(0, 8).map((record) => {
+            const time = new Date(record.winningTime);
+            return {
+                winner: record.winnerName || "匿名用户",
+                reward: record.prizeName || record.prizeTier || "奖品",
+                time: `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}`
+            };
+        });
+
+        renderWinnerTicker(state);
+    } catch (error) {
+        /* 中奖记录加载失败不影响其他功能，静默处理 */
+        console.warn("后台中奖记录加载失败:", error.message);
+    }
+}
+
+// ==================== 抽奖模块新增逻辑 ====================
+
+async function fetchActivityWinningRecords(activityId) {
+    const payload = await requestJson("/getWinningRecords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            activityId: Number(activityId)
+        })
+    });
+    const records = unwrapApiData(payload);
+    return Array.isArray(records) ? records : [];
+}
+
+async function fetchPrizeWinningRecords(activityId, prizeId) {
+    const payload = await requestJson("/getWinningRecords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            activityId: Number(activityId),
+            prizeId: Number(prizeId)
+        })
+    });
+    const records = unwrapApiData(payload);
+    return Array.isArray(records) ? records : [];
+}
+
+async function submitDrawPrize(payload) {
+    const result = await requestJson("/drawPrize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    return unwrapApiData(result) === true;
+}
+
+function bindLotterySubview(state) {
+    const links = Array.from(document.querySelectorAll("[data-lottery-subview]"));
+    const panels = Array.from(document.querySelectorAll("[data-lottery-subview-panel]"));
+
+    links.forEach(link => {
+        link.addEventListener("click", () => {
+            const target = link.dataset.lotterySubview;
+            state.lottery.subview = target;
+
+            links.forEach(l => l.classList.toggle("is-active", l.dataset.lotterySubview === target));
+            panels.forEach(p => p.classList.toggle("is-active", p.dataset.lotterySubviewPanel === target));
+
+            if (target === "activity-records") {
+                refreshActivityRecords(state);
+            } else if (target === "prize-records") {
+                refreshPrizeRecords(state);
+            }
+        });
+    });
+}
+
+function bindLotteryActivitySwitch(state) {
+    const activitySelect = document.getElementById("lotteryActivitySelect");
+    if (!activitySelect) return;
+
+    activitySelect.addEventListener("change", async () => {
+        state.lottery.selectedActivityId = activitySelect.value;
+        const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
+
+        if (currentActivity) {
+            document.getElementById("lotteryActivityStatus").textContent = currentActivity.status || "未开始";
+            document.getElementById("lotteryParticipantCount").textContent = currentActivity.activityUserList?.length || 0;
+            document.getElementById("lotteryPrizeAmount").textContent = currentActivity.activityPrizeList?.length || 0;
+
+            await loadAdminActivityDetail(state, state.lottery.selectedActivityId);
+            syncLotteryPrizeOptions(state, currentActivity);
+            refreshActivityRecords(state);
+            refreshPrizeRecords(state);
+        } else {
+            document.getElementById("lotteryActivityStatus").textContent = "--";
+            document.getElementById("lotteryParticipantCount").textContent = "0";
+            document.getElementById("lotteryPrizeAmount").textContent = "0";
+            syncLotteryPrizeOptions(state, null);
+        }
+    });
+}
+
+function syncLotteryPrizeOptions(state, activity) {
+    const prizeSelect = document.getElementById("lotteryPrizeSelect");
+    if (!prizeSelect) return;
+
+    if (!activity || !activity.activityPrizeList || activity.activityPrizeList.length === 0) {
+        prizeSelect.innerHTML = '<option value="">暂无奖品</option>';
+        state.lottery.selectedPrizeId = "";
+        updateLotterySelectedPrizeSummary(state, null);
+        return;
+    }
+
+    prizeSelect.innerHTML = activity.activityPrizeList.map(prize => {
+        return `<option value="${prize.prizeId}">${escapeHtml(prize.prizeName || '未命名奖品')}</option>`;
+    }).join("");
+
+    state.lottery.selectedPrizeId = String(activity.activityPrizeList[0].prizeId);
+    updateLotterySelectedPrizeSummary(state, activity.activityPrizeList[0]);
+}
+
+function bindLotteryPrizeSwitch(state) {
+    const prizeSelect = document.getElementById("lotteryPrizeSelect");
+    if (!prizeSelect) return;
+
+    prizeSelect.addEventListener("change", () => {
+        state.lottery.selectedPrizeId = prizeSelect.value;
+        const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
+        if (currentActivity && currentActivity.activityPrizeList) {
+            const prize = currentActivity.activityPrizeList.find(p => String(p.prizeId) === state.lottery.selectedPrizeId);
+            updateLotterySelectedPrizeSummary(state, prize);
+        }
+        if (state.lottery.subview === "prize-records") {
+            refreshPrizeRecords(state);
+        }
+    });
+
+    const origRender = window.renderAll;
+    window.renderAll = function (st) {
+        if (origRender) origRender(st);
+        const actSelect = document.getElementById("lotteryActivitySelect");
+        if (actSelect && st.activities.length > 0) {
+            const oldValue = actSelect.value;
+            actSelect.innerHTML = '<option value="">请选择活动</option>' + st.activities.map(a => `<option value="${a.id}">${escapeHtml(a.name || "未命名活动")}</option>`).join("");
+
+            if (st.selectedActivityId) {
+                actSelect.value = st.selectedActivityId;
+                if (actSelect.value !== oldValue) {
+                    actSelect.dispatchEvent(new Event("change"));
+                }
+            } else if (actSelect.options.length > 1) {
+                actSelect.selectedIndex = 1;
+                actSelect.dispatchEvent(new Event("change"));
+            }
+        }
+    };
+}
+
+function updateLotterySelectedPrizeSummary(state, prize) {
+    const nameEl = document.getElementById("lotterySelectedPrizeName");
+    const amountEl = document.getElementById("lotterySelectedPrizeAmount");
+    if (!nameEl || !amountEl) return;
+
+    if (!prize) {
+        nameEl.textContent = "当前未选择奖品";
+        amountEl.textContent = "--";
+    } else {
+        nameEl.textContent = prize.prizeName || "未命名奖品";
+        amountEl.textContent = (PRIZE_TIER_LABELS[prize.prizeTiers] || prize.prizeTiers) + ` · 余 ${prize.prizeAmount} 份`;
+    }
+}
+
+function buildWinnerListByActivity(detail, winnerCount = 1) {
+    const candidates = Array.isArray(detail?.activityUserList)
+        ? detail.activityUserList.filter((item) => item.userStatus === "INIT")
+        : [];
+
+    if (!candidates.length) {
+        throw new Error("当前活动没有处于未开奖(INIT)状态的参与人。");
+    }
+
+    return [...candidates]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, winnerCount)
+        .map((item) => ({
+            userId: Number(item.userId),
+            userName: item.userName
+        }));
+}
+
+function bindLotteryDrawAction(state) {
+    const drawBtn = document.getElementById("lotteryDrawButton");
+    if (!drawBtn) return;
+
+    drawBtn.addEventListener("click", async () => {
+        const statusEl = document.getElementById("lotteryDrawStatus");
+
+        if (!state.lottery.selectedActivityId || !state.lottery.selectedPrizeId) {
+            showInlineStatus(statusEl, "error", "请先选择活动和奖品。");
+            return;
+        }
+
+        const currentActivity = state.activities.find(a => String(a.id) === state.lottery.selectedActivityId);
+        if (!currentActivity) return;
+
+        if (currentActivity.status === "END") {
+            // NOTE: the doc specifies checking if activity is END (can't draw then)
+            // It allows drawing otherwise.
+        }
+
+        const prize = currentActivity.activityPrizeList?.find(p => String(p.prizeId) === state.lottery.selectedPrizeId);
+        if (!prize || prize.prizeAmount <= 0) {
+            showInlineStatus(statusEl, "error", "该奖品已无库存。");
+            return;
+        }
+
+        try {
+            const winnerList = buildWinnerListByActivity(currentActivity, 1);
+            const payload = {
+                activityId: Number(state.lottery.selectedActivityId),
+                prizeId: Number(state.lottery.selectedPrizeId),
+                winningTime: new Date().toISOString(),
+                prizeTiers: prize.prizeTiers,
+                winnerList: winnerList
+            };
+
+            setButtonBusy(drawBtn, true);
+            showInlineStatus(statusEl, "info", "正在提交抽奖请求...");
+
+            await submitDrawPrize(payload);
+            showInlineStatus(statusEl, "success", "请求已提交，正在等待结果...");
+
+            pollWinningRecordsAfterDraw(state);
+
+            prize.prizeAmount -= 1;
+            updateLotterySelectedPrizeSummary(state, prize);
+
+        } catch (err) {
+            showInlineStatus(statusEl, "error", err.message || "抽奖失败。");
+        } finally {
+            setButtonBusy(drawBtn, false);
+        }
+    });
+}
+
+function bindLotteryRefreshActions(state) {
+    const refreshActBtn = document.getElementById("refreshActivityRecords");
+    const refreshPrzBtn = document.getElementById("refreshPrizeRecords");
+
+    if (refreshActBtn) {
+        refreshActBtn.addEventListener("click", () => refreshActivityRecords(state));
+    }
+    if (refreshPrzBtn) {
+        refreshPrzBtn.addEventListener("click", () => refreshPrizeRecords(state));
+    }
+}
+
+async function refreshActivityRecords(state) {
+    if (!state.lottery.selectedActivityId) return;
+    try {
+        state.lottery.activityRecords = await fetchActivityWinningRecords(state.lottery.selectedActivityId);
+        renderLotteryRecordTables(state);
+    } catch (e) {
+        console.warn("刷新活动名单失败", e);
+    }
+}
+
+async function refreshPrizeRecords(state) {
+    if (!state.lottery.selectedActivityId || !state.lottery.selectedPrizeId) return;
+    try {
+        state.lottery.prizeRecords = await fetchPrizeWinningRecords(state.lottery.selectedActivityId, state.lottery.selectedPrizeId);
+        renderLotteryRecordTables(state);
+    } catch (e) {
+        console.warn("刷新奖品名单失败", e);
+    }
+}
+
+function formatWinningTime(value) {
+    if (!value) return "--";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "--";
+    return new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    }).format(date);
+}
+
+function renderLotteryRecordTables(state) {
+    const actBody = document.getElementById("lotteryActivityRecordsTable");
+    const przBody = document.getElementById("lotteryPrizeRecordsTable");
+    const actCountEl = document.getElementById("lotteryActivityRecordsCount");
+    const przCountEl = document.getElementById("lotteryPrizeRecordsCount");
+
+    if (actBody && state.lottery.activityRecords) {
+        actCountEl.textContent = `${state.lottery.activityRecords.length} 条记录`;
+        const sorted = [...state.lottery.activityRecords].sort((a, b) => new Date(b.winningTime) - new Date(a.winningTime));
+        if (sorted.length === 0) {
+            actBody.innerHTML = '<tr><td colspan="4" class="admin-table-empty">暂无记录</td></tr>';
+        } else {
+            actBody.innerHTML = sorted.map(r => `
+                <tr>
+                    <td>${formatWinningTime(r.winningTime)}</td>
+                    <td>${escapeHtml(r.winnerName || "匿名")}</td>
+                    <td>${escapeHtml(r.prizeName || "--")}</td>
+                    <td>${escapeHtml(PRIZE_TIER_LABELS[r.prizeTier] || r.prizeTier || "--")}</td>
+                </tr>
+            `).join("");
+        }
+    }
+
+    if (przBody && state.lottery.prizeRecords) {
+        przCountEl.textContent = `${state.lottery.prizeRecords.length} 条记录`;
+        const sorted = [...state.lottery.prizeRecords].sort((a, b) => new Date(b.winningTime) - new Date(a.winningTime));
+        if (sorted.length === 0) {
+            przBody.innerHTML = '<tr><td colspan="4" class="admin-table-empty">暂无记录</td></tr>';
+        } else {
+            przBody.innerHTML = sorted.map(r => `
+                <tr>
+                    <td>${formatWinningTime(r.winningTime)}</td>
+                    <td>${escapeHtml(r.winnerName || "匿名")}</td>
+                    <td>${escapeHtml(r.prizeName || "--")}</td>
+                    <td>${escapeHtml(PRIZE_TIER_LABELS[r.prizeTier] || r.prizeTier || "--")}</td>
+                </tr>
+            `).join("");
+        }
+    }
+}
+
+async function pollWinningRecordsAfterDraw(state) {
+    const activityId = state.lottery.selectedActivityId;
+    const prizeId = state.lottery.selectedPrizeId;
+    const statusEl = document.getElementById("lotteryDrawStatus");
+
+    const initialPrizeCount = state.lottery.prizeRecords.length;
+
+    for (let i = 0; i < state.lottery.pollingMaxAttempts; i += 1) {
+        const [activityRecords, prizeRecords] = await Promise.all([
+            fetchActivityWinningRecords(activityId),
+            fetchPrizeWinningRecords(activityId, prizeId)
+        ]);
+
+        state.lottery.activityRecords = activityRecords || [];
+        state.lottery.prizeRecords = prizeRecords || [];
+        renderLotteryRecordTables(state);
+
+        if (state.lottery.prizeRecords.length > initialPrizeCount) {
+            showInlineStatus(statusEl, "success", "抽奖成功，中奖名单已刷新。");
+            return;
+        }
+
+        await sleep(state.lottery.pollingInterval);
+    }
+
+    showInlineStatus(statusEl, "info", "抽奖请求已提交，名单可能稍后可见，请手动刷新。");
 }

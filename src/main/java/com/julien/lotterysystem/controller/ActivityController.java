@@ -33,7 +33,7 @@ public class ActivityController {
      * @param page 分页参数
      */
     @GetMapping("/queryList")
-    public ActivityListResponse queryActivityList(@RequestBody Page<Activity> page) {
+    public ActivityListResponse queryActivityList(Page<Activity> page) {
         return activityService.queryActivityList(page);
     }
 

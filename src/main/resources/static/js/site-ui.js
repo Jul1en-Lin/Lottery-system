@@ -53,97 +53,25 @@ function initCountdownPill() {
 }
 
 function initActivityDetailPage() {
+    // activity-detail.html 已通过 bindDrawModal() 在页面内脚本中自行处理抽奖逻辑，
+    // site-ui.js 不再重复绑定 confirmBtn，避免双重触发真实 API 与旧假数据逻辑冲突。
     if (document.body.dataset.page !== "site-activity-detail") {
         return;
     }
 
     const countdownEl = document.getElementById("detailCountdown");
-    const drawCountEl = document.getElementById("detailDrawCount");
-    const participantEl = document.getElementById("detailParticipantCount");
-    const winnerList = document.getElementById("detailWinnerList");
-    const drawTrigger = document.querySelector("[data-open-modal='invite']");
-    const confirmBtn = document.querySelector(".site-modal .action-btn");
-
-    const prizeNameEl = document.getElementById("detailPrizeName");
-    const prizeMetaEl = document.getElementById("detailPrizeMeta");
-    const prizeDescEl = document.getElementById("detailPrizeDesc");
-    const prizeCards = Array.from(document.querySelectorAll(".detail-prize-card"));
-
-    let drawCount = Number(drawCountEl?.textContent || 3);
-    let participantCount = Number(String(participantEl?.textContent || "10240").replace(/,/g, ""));
     const deadline = Date.now() + 1000 * 60 * 60 * 8;
 
-    const tick = () => {
-        if (!countdownEl) {
-            return;
-        }
-        const remain = Math.max(0, deadline - Date.now());
-        const h = Math.floor(remain / (1000 * 60 * 60));
-        const m = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((remain % (1000 * 60)) / 1000);
-        countdownEl.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-    };
-
-    tick();
-    window.setInterval(tick, 1000);
-
-    prizeCards.forEach((card) => {
-        card.addEventListener("click", () => {
-            prizeCards.forEach((item) => item.classList.remove("is-active"));
-            card.classList.add("is-active");
-            const name = card.dataset.prizeName || "奖品";
-            const prob = card.dataset.prizeProb || "0%";
-            const stock = card.dataset.prizeStock || "0";
-            const desc = card.dataset.prizeDesc || "暂无说明";
-            if (prizeNameEl) {
-                prizeNameEl.textContent = name;
-            }
-            if (prizeMetaEl) {
-                prizeMetaEl.textContent = `库存 ${stock} · 概率 ${prob}`;
-            }
-            if (prizeDescEl) {
-                prizeDescEl.textContent = desc;
-            }
-        });
-    });
-
-    if (!confirmBtn || !winnerList) {
-        return;
+    if (countdownEl) {
+        const tick = () => {
+            const remain = Math.max(0, deadline - Date.now());
+            const h = Math.floor(remain / (1000 * 60 * 60));
+            const m = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((remain % (1000 * 60)) / 1000);
+            countdownEl.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        };
+        tick();
+        window.setInterval(tick, 1000);
     }
-
-    confirmBtn.addEventListener("click", () => {
-        if (drawCount <= 0) {
-            return;
-        }
-
-        const activePrize = document.querySelector(".detail-prize-card.is-active");
-        const prizeName = activePrize?.dataset.prizeName || "隐藏礼品";
-        drawCount = Math.max(0, drawCount - 1);
-        participantCount += Math.floor(Math.random() * 3) + 1;
-
-        if (drawCountEl) {
-            drawCountEl.textContent = String(drawCount);
-        }
-        if (participantEl) {
-            participantEl.textContent = String(participantCount);
-        }
-
-        const row = document.createElement("li");
-        const fakeName = `用*户${Math.floor(Math.random() * 90) + 10}`;
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, "0");
-        const mm = String(now.getMinutes()).padStart(2, "0");
-        row.innerHTML = `<span>${fakeName}</span><strong>${prizeName}</strong><time>${hh}:${mm}</time>`;
-        winnerList.prepend(row);
-        if (winnerList.children.length > 8) {
-            winnerList.removeChild(winnerList.lastElementChild);
-        }
-    });
-
-    drawTrigger?.addEventListener("click", () => {
-        if (confirmBtn instanceof HTMLButtonElement) {
-            confirmBtn.disabled = drawCount <= 0;
-            confirmBtn.textContent = drawCount <= 0 ? "抽奖次数不足" : "确认抽奖";
-        }
-    });
+    // 注意：奖品卡片点击切换和弹窗抽奖逻辑均已由 activity-detail.html 内联脚本接管。
 }

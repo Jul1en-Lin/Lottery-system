@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>抽奖系统 | 中奖记录</title>
+    <meta name="description" content="查看指定活动的完整中奖记录，了解历次抽奖结果。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
@@ -16,35 +17,154 @@
         <nav class="site-nav-links">
             <a href="/homepage">首页</a>
             <a href="/activity-list">活动列表</a>
-            <a href="/activity-detail">活动详情</a>
             <a href="/user-center">用户中心</a>
-            <a class="is-active" href="/prize-record">中奖记录</a>
+            <a class="is-active" href="#">中奖记录</a>
         </nav>
-        <button class="site-nav-cta">导出记录</button>
+        <button class="site-nav-cta" id="recordRefreshBtn">刷新记录</button>
     </header>
 
     <section class="site-main">
         <section class="site-hero">
             <p class="site-kicker">Prize Records</p>
-            <h1>中奖记录页<br><span class="accent">UNIFIED PRODUCT UI</span></h1>
-            <p>统一设计语言覆盖记录页，保持高对比文本、清晰层级和可扩展组件体系。</p>
-            <div class="capsule-row">
-                <span class="info-capsule">总记录 1,286</span>
-                <span class="info-capsule">待发放 92</span>
-                <span class="info-capsule">已签收 1,194</span>
+            <h1 id="recordPageTitle">中奖记录<br><span class="accent">WINNER LOG</span></h1>
+            <p id="recordPageDesc">正在加载中奖记录…</p>
+            <div class="capsule-row" id="recordHeroCapsules">
+                <span class="info-capsule">加载中…</span>
             </div>
         </section>
 
         <section class="panel-card span-12">
-            <div class="section-head"><div><h3>中奖流水</h3><p>卡片化记录条目，信息密度可控且易读。</p></div><span class="tag">Record List</span></div>
-            <div class="card-grid">
-                <article class="record-item"><h4>林*然 · 智能看护设备</h4><p>活动：春季品牌联合抽奖</p><p>时间：2026-03-15 10:12</p></article>
-                <article class="record-item"><h4>赵*菲 · 宠物体检套餐</h4><p>活动：门店福利专场</p><p>时间：2026-03-15 10:20</p></article>
-                <article class="record-item"><h4>吴*诺 · 年度保险权益</h4><p>活动：周年庆幸运盲盒</p><p>时间：2026-03-15 10:28</p></article>
+            <div class="section-head">
+                <div>
+                    <h3>中奖流水</h3>
+                    <p id="recordSubtitle">卡片化记录条目，信息密度可控且易读。</p>
+                </div>
+                <span class="tag" id="recordCountTag">Record List</span>
+            </div>
+            <!-- 中奖记录列表，由 JS 动态填充 -->
+            <div class="card-grid" id="prizeRecordGrid">
+                <p class="empty-tip">正在加载中奖记录…</p>
             </div>
         </section>
     </section>
 </main>
+
+<script src="/js/http.js" defer></script>
 <script src="/js/site-ui.js" defer></script>
+<script>
+(function () {
+    "use strict";
+
+    /** 格式化奖项档位 */
+    function formatPrizeTier(tier) {
+        const map = {
+            TIER_SPECIAL: "特等奖",
+            TIER_1: "一等奖",
+            TIER_2: "二等奖",
+            TIER_3: "三等奖"
+        };
+        return map[String(tier || "")] || tier || "未知档位";
+    }
+
+    /**
+     * 从 URL 中读取 activityId，不存在则抛出。
+     * @returns {string}
+     */
+    function getRequiredActivityId() {
+        const params = new URLSearchParams(window.location.search);
+        const activityId = params.get("activityId");
+        if (!activityId) {
+            throw new Error("当前页面缺少 activityId，请从具体活动入口进入中奖记录页。");
+        }
+        return activityId;
+    }
+
+    /**
+     * 加载并渲染中奖记录。
+     */
+    async function loadPrizeRecordPage() {
+        const grid = document.getElementById("prizeRecordGrid");
+        const countTag = document.getElementById("recordCountTag");
+        const subtitle = document.getElementById("recordSubtitle");
+        const capsules = document.getElementById("recordHeroCapsules");
+        const pageTitle = document.getElementById("recordPageTitle");
+        const pageDesc = document.getElementById("recordPageDesc");
+
+        grid.innerHTML = '<p class="empty-tip">正在加载中奖记录…</p>';
+
+        let activityId;
+        try {
+            activityId = getRequiredActivityId();
+        } catch (e) {
+            grid.innerHTML = `<p class="empty-tip">${escapeHtml(e.message)}</p>`;
+            if (capsules) capsules.innerHTML = '<span class="info-capsule">需要活动 ID</span>';
+            if (pageDesc) pageDesc.textContent = "请从活动详情页点击「查看记录」进入本页。";
+            return;
+        }
+
+        /* 从 URL 取活动名称（由 activity-detail.html 跳转时附带） */
+        const params = new URLSearchParams(window.location.search);
+        const activityName = params.get("activityName") || `活动 ${activityId}`;
+
+        /* 更新页面标题 */
+        if (pageTitle) {
+            pageTitle.innerHTML = `中奖记录<br><span class="accent">${escapeHtml(activityName.toUpperCase())}</span>`;
+        }
+        if (pageDesc) pageDesc.textContent = `正在查询活动「${activityName}」的中奖记录…`;
+
+        try {
+            const payload = await requestJson("/getWinningRecords", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activityId: Number(activityId) })
+            });
+
+            const records = Array.isArray(payload.data) ? payload.data : [];
+
+            /* 更新 hero 信息 */
+            if (capsules) {
+                capsules.innerHTML = `
+                    <span class="info-capsule">共 ${records.length} 条记录</span>
+                    <span class="info-capsule">活动 ID：${escapeHtml(activityId)}</span>
+                `;
+            }
+            if (subtitle) subtitle.textContent = `活动「${activityName}」共产生 ${records.length} 条中奖记录。`;
+            if (countTag) countTag.textContent = `${records.length} 条`;
+            if (pageDesc) pageDesc.textContent = `已查询活动「${activityName}」，共 ${records.length} 条中奖记录。`;
+
+            grid.innerHTML = "";
+            if (!records.length) {
+                grid.innerHTML = '<p class="empty-tip">本活动暂无中奖记录。</p>';
+                return;
+            }
+
+            records.forEach((record) => {
+                const time = new Date(record.winningTime);
+                const card = document.createElement("article");
+                card.className = "record-item";
+                card.innerHTML = `
+                    <h4>${escapeHtml(record.winnerName || "匿名用户")} · ${escapeHtml(record.prizeName || "未知奖品")}</h4>
+                    <p>活动：${escapeHtml(activityName)}</p>
+                    <p>时间：${time.toLocaleString("zh-CN")}</p>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error("加载中奖记录失败:", error);
+            grid.innerHTML = `<p class="empty-tip">记录加载失败：${escapeHtml(error.message || "请稍后重试")}</p>`;
+            if (capsules) capsules.innerHTML = '<span class="info-capsule">加载失败</span>';
+            if (countTag) countTag.textContent = "加载失败";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadPrizeRecordPage();
+
+        document.getElementById("recordRefreshBtn")?.addEventListener("click", () => {
+            loadPrizeRecordPage();
+        });
+    });
+})();
+</script>
 </body>
 </html>

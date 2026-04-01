@@ -564,3 +564,73 @@ body[data-page^="site-"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* ── 空状态提示 ── */
+.empty-tip {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 32px 12px;
+    color: var(--ds-text-soft);
+    font-size: 0.95rem;
+    opacity: 0.85;
+}
+
+/* ── 分页控件 ── */
+.pagination-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(16, 51, 54, 0.1);
+    color: var(--ds-text-soft);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* ── 活动卡片可点击交互 ── */
+.activity-card {
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.activity-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(16, 51, 54, 0.14);
+}
+
+.activity-card h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--ds-text);
+}
+
+/* ── 中奖记录卡片 ── */
+.record-item h4 {
+    margin: 0;
+    font-size: 0.98rem;
+    color: var(--ds-text);
+}
+
+.record-item p {
+    margin: 4px 0 0;
+    color: var(--ds-text-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ── 按钮禁用态 ── */
+.action-btn:disabled,
+.outline-btn:disabled,
+.site-nav-cta:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+
+/* ── span-3 布局 ── */
+.span-3 { grid-column: span 3; }
+
+@media (max-width: 1080px) {
+    .span-3 { grid-column: span 12; }
+}

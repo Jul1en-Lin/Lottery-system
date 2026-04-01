@@ -22,7 +22,7 @@ public class DlxReceiver {
     @RabbitHandler
     public void process(Map<String, String> message) {
         log.warn("死信队列收到消息: " + message);
-        // rabbitTemplate.convertAndSend(EXCHANGE_NAME, ROUTING_KEY, message);
+         rabbitTemplate.convertAndSend(EXCHANGE_NAME, ROUTING_KEY, message);
         // 正确的流程（扩展）：
         // 1、接收到异常消息，可以将异常消息存放到数据库表中
         // 2、存放后，当前异常消息消费完成，死信队列消息处理完成，但异常消息被我们持久化存储到表中了
