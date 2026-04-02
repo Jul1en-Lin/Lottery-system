@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 public class AESUtilTest {
+
     /**
      * AES对称加密（手机号码）
      */
