@@ -35,8 +35,11 @@ build/
 picture
 .todo
 .codex
-.claude
 .gemini
-frontend-impl-doc.tmp.md
-前端最终实现文档.md
-抽奖模块前端技术实施文档.md
+.github
+.gitattributes
+.todo
+.mvn
+mvnw.cmd
+mvnw
+实现文档

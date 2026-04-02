@@ -922,7 +922,7 @@ function renderEventPrizeCards(state, prizeItems) {
     }
 
     state.elements.eventPrizeGrid.innerHTML = prizeItems.map((prize, index) => `
-        <div class="event-prize-card" data-prize-index="${index}" data-prize-id="${prize.prizeId || ""}">
+        <div class="event-prize-card" data-prize-index="${index}" data-prize-id="${prize.prizeId || ""}" data-prize-tiers="${prize.tier || ""}">
             <span class="event-prize-card-badge">${escapeHtml(resolvePrizeTierLabel(prize.tier))}</span>
             <strong>${escapeHtml(prize.name)}</strong>
             <p>${escapeHtml(prize.description)}</p>
@@ -1184,8 +1184,24 @@ function startCountdown(button, seconds) {
 }
 
 async function requestJson(url, options) {
-    const response = await fetch(url, options);
+    const requestOptions = options ? { ...options } : {};
+    const headers = new Headers(requestOptions.headers || {});
+    const token = readAdminToken();
+
+    if (token && !headers.has("token")) {
+        headers.set("token", token);
+    }
+
+    requestOptions.headers = headers;
+
+    const response = await fetch(url, requestOptions);
     const body = await response.json().catch(() => null);
+
+    if (response.status === 401) {
+        sessionStorage.removeItem("auth-session");
+        window.location.href = "/login";
+        throw new Error("登录已过期，请重新登录。");
+    }
 
     if (!response.ok) {
         throw new Error(body?.message || "请求失败");
@@ -1200,6 +1216,20 @@ async function requestJson(url, options) {
     }
 
     return body;
+}
+
+function readAdminToken() {
+    const raw = sessionStorage.getItem("auth-session");
+    if (!raw) {
+        return "";
+    }
+
+    try {
+        const session = JSON.parse(raw);
+        return typeof session?.token === "string" ? session.token : "";
+    } catch (error) {
+        return "";
+    }
 }
 
 function unwrapApiData(payload) {
@@ -1594,7 +1624,7 @@ async function executeAdminDrawPrize(state) {
             activityId: Number(selectedActivity.id),
             prizeId: Number(activePrizeButton.dataset.prizeId),
             winningTime: new Date().toISOString(),
-            prizeTiers: activePrizeButton.dataset.prizeTiers,
+            prizeTiers: activePrizeButton.dataset.prizeTiers || prize.prizeTiers || prize.tier,
             winnerList
         })
     });

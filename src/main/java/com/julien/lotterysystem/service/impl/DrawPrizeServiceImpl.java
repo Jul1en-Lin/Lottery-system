@@ -5,20 +5,24 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.julien.lotterysystem.common.constants.ErrorConstants;
 import com.julien.lotterysystem.common.enums.ActivityStatusEnum;
 import com.julien.lotterysystem.common.enums.PrizeStatusEnum;
+import com.julien.lotterysystem.common.enums.UserStatusEnum;
 import com.julien.lotterysystem.common.exception.LotteryException;
 import com.julien.lotterysystem.common.utils.JacksonUtil;
 import com.julien.lotterysystem.entity.dataobject.*;
+import com.julien.lotterysystem.entity.dto.ConvertActivityStatusDTO;
 import com.julien.lotterysystem.entity.request.DrawPrizeRequest;
 import com.julien.lotterysystem.entity.request.GetWinningRecordsRequest;
 import com.julien.lotterysystem.entity.response.WinningRecordResponse;
 import com.julien.lotterysystem.mapper.*;
 import com.julien.lotterysystem.service.DrawPrizeService;
+import com.julien.lotterysystem.service.activitystatus.ActivityStatusManager;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -54,6 +58,8 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     private SqlSessionFactory sqlSessionFactory;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private ActivityStatusManager activityStatusManager;
 
     // 缓存超时时间，单位：秒
     private final Long CACHE_TIMEOUT = 60 * 60L;
@@ -68,10 +74,93 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
         Map<String,String> map = new HashMap<>();
         map.put("messageId", UUID.randomUUID().toString());
         map.put("messageBody", JacksonUtil.serialize(request));
-        // 发送消息到队列
-        // 需要指定交换机、与队列绑定的路由键、包装后的消息体
-        rabbitTemplate.convertAndSend(EXCHANGE_NAME,ROUTING_KEY,map);
-        log.info("成功发送抽奖消息到队列，消息体：{}", map);
+        try {
+            // 发送消息到队列
+            // 需要指定交换机、与队列绑定的路由键、包装后的消息体
+            rabbitTemplate.convertAndSend(EXCHANGE_NAME,ROUTING_KEY,map);
+            log.info("成功发送抽奖消息到队列，消息体：{}", map);
+        } catch (Exception e) {
+            // MQ 不可用时降级为同步执行，保证抽奖主流程可用。
+            log.error("发送抽奖消息到队列失败，降级为同步执行，request:{}", JacksonUtil.serialize(request), e);
+            processDrawPrizeSync(request);
+        }
+    }
+
+    /**
+     * MQ 不可用时的同步降级执行流程。
+     */
+    private void processDrawPrizeSync(DrawPrizeRequest request) {
+        try {
+            if (!checkDrawPrizeRequest(request)) {
+                throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "抽奖请求校验失败，请刷新页面后重试");
+            }
+
+            convertStatus(request);
+            saveWinningRecord(request);
+            log.info("抽奖同步降级执行完成，activityId:{}, prizeId:{}", request.getActivityId(), request.getPrizeId());
+        } catch (LotteryException e) {
+            rollback(request);
+            throw e;
+        } catch (Exception e) {
+            rollback(request);
+            log.error("抽奖同步降级执行失败，activityId:{}, prizeId:{}", request.getActivityId(), request.getPrizeId(), e);
+            throw new LotteryException(HttpStatus.BAD_REQUEST.value(), "抽奖处理失败，请稍后重试");
+        }
+    }
+
+    private void rollback(DrawPrizeRequest request) {
+        if (statusNeedRollback(request)) {
+            statusRollback(request);
+        }
+        if (winnerNeedRollback(request)) {
+            winnerRollback(request);
+        }
+    }
+
+    private Boolean statusNeedRollback(DrawPrizeRequest request) {
+        ActivityPrize activityPrize = activityPrizeMapper.selectOne(new LambdaQueryWrapper<ActivityPrize>()
+                .eq(ActivityPrize::getActivityId, request.getActivityId())
+                .eq(ActivityPrize::getPrizeId, request.getPrizeId()));
+        return activityPrize != null
+                && activityPrize.getStatus().equalsIgnoreCase(PrizeStatusEnum.COMPLETED.name());
+    }
+
+    private void statusRollback(DrawPrizeRequest request) {
+        ConvertActivityStatusDTO activityStatusDTO = new ConvertActivityStatusDTO();
+        activityStatusDTO.setActivityId(request.getActivityId());
+        activityStatusDTO.setTargetActivityStatus(ActivityStatusEnum.START);
+        activityStatusDTO.setPrizeId(request.getPrizeId());
+        activityStatusDTO.setTargetPrizeStatus(PrizeStatusEnum.INIT);
+        activityStatusDTO.setUserIds(request.getWinnerList().stream()
+                .map(DrawPrizeRequest.Winner::getUserId).toList());
+        activityStatusDTO.setTargetUserStatus(UserStatusEnum.INIT);
+        activityStatusManager.rollBackEvent(activityStatusDTO);
+    }
+
+    private Boolean winnerNeedRollback(DrawPrizeRequest request) {
+        Long count = winningRecordMapper.selectCount(new LambdaQueryWrapper<WinningRecord>()
+                .eq(WinningRecord::getActivityId, request.getActivityId())
+                .eq(WinningRecord::getPrizeId, request.getPrizeId()));
+        return count > 0;
+    }
+
+    private void winnerRollback(DrawPrizeRequest request) {
+        winningRecordMapper.delete(new LambdaQueryWrapper<WinningRecord>()
+                .eq(WinningRecord::getActivityId, request.getActivityId())
+                .eq(WinningRecord::getPrizeId, request.getPrizeId()));
+        deleteWinningRecordCache(request.getActivityId(), request.getPrizeId());
+    }
+
+    private void convertStatus(DrawPrizeRequest request) {
+        ConvertActivityStatusDTO activityStatusDTO = new ConvertActivityStatusDTO();
+        activityStatusDTO.setActivityId(request.getActivityId());
+        activityStatusDTO.setTargetActivityStatus(ActivityStatusEnum.END);
+        activityStatusDTO.setPrizeId(request.getPrizeId());
+        activityStatusDTO.setTargetPrizeStatus(PrizeStatusEnum.COMPLETED);
+        activityStatusDTO.setUserIds(request.getWinnerList().stream()
+                .map(DrawPrizeRequest.Winner::getUserId).toList());
+        activityStatusDTO.setTargetUserStatus(UserStatusEnum.COMPLETED);
+        activityStatusManager.handlerEvent(activityStatusDTO);
     }
 
     /**

@@ -7,8 +7,8 @@ import com.julien.lotterysystem.entity.response.WinningRecordResponse;
 import com.julien.lotterysystem.service.DrawPrizeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -22,7 +22,7 @@ public class DrawPrizeController {
     /**
      * 抽奖接口
      */
-    @RequestMapping("/drawPrize")
+    @PostMapping("/drawPrize")
     public Boolean drawPrize(@RequestBody @Valid DrawPrizeRequest request) {
         drawPrizeService.drawPrize(request);
         return true;
@@ -31,7 +31,7 @@ public class DrawPrizeController {
     /**
      * 查询中奖记录
      */
-    @RequestMapping("/getWinningRecords")
+    @PostMapping("/getWinningRecords")
     public List<WinningRecordResponse> getWinningRecords(@RequestBody @Valid GetWinningRecordsRequest request) {
         return drawPrizeService.getWinningRecords(request);
     }

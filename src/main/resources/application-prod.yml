@@ -1,0 +1,48 @@
+spring:
+  application:
+        name: lottery-system
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/lottery_system?characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: dd.159178280
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  mail: # 邮件发送配置
+    host: smtp.qq.com
+    port: 465
+    username: 1577045857@qq.com
+    password: lvcgvdnawophigec # 授权码
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin
+    listener:
+      simple:
+        retry:
+          enabled: true # 开启重试机制
+          max-retries: 5 # 最大重试次数
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true #配置驼峰自动转换
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #打印sql语句
+  type-handlers-package: com.julien.lotterysystem.mapper.handler # 配置类型处理器包路径（手机号自动加密解密）
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    name: lottery-system.log
+
+# 本地直接启动时，默认会写到你当前启动目录下的 picture 文件夹
+picture:
+  destPath: ${PICTURE_DEST_PATH:${user.dir}/picture/}

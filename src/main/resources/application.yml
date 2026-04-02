@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: dev
+    active: @profile.name@
 
 picture:
   destPath: ${PICTURE_DEST_PATH:${user.dir}/picture/}

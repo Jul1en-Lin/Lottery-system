@@ -57,7 +57,7 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler
     public Object handler(Exception e) {
-        log.error("发生异常:{}", e.getMessage());
+        log.error("发生未处理异常", e);
         return Result.fail(HttpStatus.BAD_REQUEST.value(),"发生异常");
     }
 }

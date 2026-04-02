@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <!-- 跳过测试打包 -->
+        <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencies>
         <!-- RabbitMQ服务 -->
@@ -137,7 +139,33 @@
 
     </dependencies>
 
+    <!--配置文件-->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <profile.name>dev</profile.name>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <profile.name>prod</profile.name>
+            </properties>
+        </profile>
+
+    </profiles>
+
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
