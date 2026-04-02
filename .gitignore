@@ -32,14 +32,20 @@ build/
 ### VS Code ###
 .vscode/
 
+
 picture
-.todo
-.codex
-.gemini
-.github
 .gitattributes
-.todo
-.mvn
-mvnw.cmd
+实现文档/
+.mvn/
 mvnw
-实现文档
+mvnw.cmd
+.todo/
+.codex/
+.gemini/
+.claude
+.github/
+*.skill
+*.agent.md
+*.instructions.md
+*.prompt.md
+SKILL.md
