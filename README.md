@@ -27,6 +27,17 @@ java -jar target/lottery-system-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 - 主要外部依赖：MySQL、Redis、RabbitMQ；请在对应的 yml 中配置连接信息
 - 图片输出目录：可通过环境变量 `PICTURE_DEST_PATH` 覆盖，默认 `${user.dir}/picture/`
 
+## 技术栈
+- 语言/平台：Java 17+
+- 核心框架：Spring Boot 4
+- 持久层：MyBatis-Plus + MySQL
+- 缓存/消息：Redis、RabbitMQ
+- 认证：JWT
+- 常用库：Lombok、Hutool
+- 日志：Logback
+- 构建/运行：Maven / Maven Wrapper
+- 前端：静态资源（HTML/JS/CSS）
+
 ## 代码结构
 - 入口： [src/main/java/com/julien/lotterysystem/LotterySystemApplication.java](src/main/java/com/julien/lotterysystem/LotterySystemApplication.java)
 - 静态资源： [src/main/resources/static/](src/main/resources/static/)
