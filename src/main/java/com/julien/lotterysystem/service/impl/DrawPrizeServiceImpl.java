@@ -341,6 +341,19 @@ public class DrawPrizeServiceImpl implements DrawPrizeService {
     public List<WinningRecordResponse> getWinningRecords(GetWinningRecordsRequest request) {
         // 尝试获取缓存
         List<WinningRecord> winningRecordCache = null;
+
+        // activityId 为空时，查询所有中奖记录
+        if (null == request.getActivityId()) {
+            log.info("活动ID为空，查询所有中奖记录");
+            List<WinningRecord> winningRecords = winningRecordMapper.selectList(new LambdaQueryWrapper<WinningRecord>()
+                    .orderByDesc(WinningRecord::getWinningTime));
+            if (CollectionUtils.isEmpty(winningRecords)) {
+                log.info("数据库中没有中奖信息");
+                return null;
+            }
+            return convertWinningRecordResponse(winningRecords);
+        }
+
         if (null == request.getPrizeId()) {
             // 查询整个活动维度的中奖信息
             log.info("活动ID为空，获取整个活动维度的中奖信息");

@@ -8,8 +8,8 @@
     <div class="user-info paper-card">
       <h3>个人信息</h3>
       <Divider />
-      <p><strong>用户名：</strong>{{ userStore.userInfo?.userName || '未登录' }}</p>
-      <p><strong>邮箱：</strong>{{ userStore.userInfo?.email || '-' }}</p>
+      <p><strong>用户ID：</strong>{{ userStore.userId || '-' }}</p>
+      <p><strong>身份：</strong>{{ userStore.isAdmin ? '管理员' : '普通用户' }}</p>
     </div>
 
     <div class="quick-actions paper-card">
@@ -30,18 +30,11 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
 import Divider from '@/components/common/Divider.vue'
 
 const userStore = useUserStore()
-
-onMounted(() => {
-  if (!userStore.userInfo) {
-    userStore.fetchUserInfo()
-  }
-})
 </script>
 
 <style scoped>

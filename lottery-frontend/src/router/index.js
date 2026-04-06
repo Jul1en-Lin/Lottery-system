@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 const routes = [
   {
@@ -37,17 +38,20 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/LoginView.vue')
+    component: () => import('@/views/LoginView.vue'),
+    meta: { guest: true }
   },
   {
     path: '/signup',
     name: 'Signup',
-    component: () => import('@/views/SignupView.vue')
+    component: () => import('@/views/SignupView.vue'),
+    meta: { guest: true }
   },
   {
     path: '/forgot-password',
     name: 'ForgotPassword',
-    component: () => import('@/views/ForgotPasswordView.vue')
+    component: () => import('@/views/ForgotPasswordView.vue'),
+    meta: { guest: true }
   }
 ]
 
@@ -59,11 +63,26 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
+
+  // 需要登录但未登录
   if (to.meta.requiresAuth && !token) {
-    next('/login')
-  } else {
-    next()
+    return next('/login')
   }
+
+  // 已登录但访问登录/注册页面，重定向到首页
+  if (to.meta.guest && token) {
+    return next('/')
+  }
+
+  // 需要管理员权限
+  if (to.meta.requiresAdmin) {
+    const userStore = useUserStore()
+    if (!userStore.isAdmin) {
+      return next('/')
+    }
+  }
+
+  next()
 })
 
 export default router

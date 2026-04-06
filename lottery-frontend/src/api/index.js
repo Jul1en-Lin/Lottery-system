@@ -23,7 +23,14 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   response => {
-    return response.data
+    const result = response.data
+    // 后端返回 Result<T> 格式：{ code, message, data }
+    if (result.code === 200) {
+      return result
+    } else {
+      ElMessage.error(result.message || '请求失败')
+      return Promise.reject(new Error(result.message))
+    }
   },
   error => {
     const message = error.response?.data?.message || '网络请求失败'

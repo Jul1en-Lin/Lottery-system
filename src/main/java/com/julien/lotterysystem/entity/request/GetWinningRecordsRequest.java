@@ -1,14 +1,12 @@
 package com.julien.lotterysystem.entity.request;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class GetWinningRecordsRequest {
     /**
-     * 活动id
+     * 活动id（可选，为空时查询所有中奖记录）
      */
-    @NotNull(message = "活动id不能为空！")
     private Long activityId;
 
     /**

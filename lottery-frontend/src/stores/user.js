@@ -1,13 +1,27 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { userApi } from '@/api/modules/user'
+import { decodeJwt, isTokenExpired } from '@/utils/index'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
   const userInfo = ref(null)
 
-  const isLoggedIn = computed(() => !!token.value)
-  const isAdmin = computed(() => userInfo.value?.identity === 'ADMIN')
+  const isLoggedIn = computed(() => {
+    if (!token.value) return false
+    return !isTokenExpired(token.value)
+  })
+
+  const isAdmin = computed(() => {
+    if (!token.value) return false
+    const payload = decodeJwt(token.value)
+    return payload?.identity === 'ADMIN'
+  })
+
+  const userId = computed(() => {
+    if (!token.value) return null
+    const payload = decodeJwt(token.value)
+    return payload?.userId || null
+  })
 
   function setToken(newToken) {
     token.value = newToken
@@ -20,23 +34,13 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('token')
   }
 
-  async function fetchUserInfo() {
-    if (!token.value) return
-    try {
-      const res = await userApi.getUserList()
-      userInfo.value = res.data
-    } catch (error) {
-      clearToken()
-    }
-  }
-
   return {
     token,
     userInfo,
     isLoggedIn,
     isAdmin,
+    userId,
     setToken,
-    clearToken,
-    fetchUserInfo
+    clearToken
   }
 })

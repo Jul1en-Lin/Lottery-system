@@ -77,6 +77,7 @@ async function handleLogin() {
     loading.value = true
 
     const res = await userApi.adminPasswordLogin(form)
+    // res 是 Result<T>，res.data 是 UserLoginResponse
     userStore.setToken(res.data.token)
     router.push('/')
   } catch (error) {
