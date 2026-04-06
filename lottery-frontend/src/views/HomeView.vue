@@ -52,7 +52,7 @@
             class="winner-item"
           >
             <Stamp text="中奖" size="small" />
-            <span>{{ maskUsername(record.winnerName) }} 中得 {{ record.prizeName }}</span>
+            <span>{{ maskUsername(record.username) }} 中得 {{ record.prizeName }}</span>
           </div>
         </template>
         <div v-else class="empty-text">暂无中奖记录</div>

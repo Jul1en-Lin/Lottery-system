@@ -176,6 +176,16 @@
               <label>活动描述</label>
               <textarea v-model="activityForm.activityDescription" placeholder="请输入活动描述"></textarea>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>开始时间</label>
+                <input v-model="activityForm.startTime" type="datetime-local" required />
+              </div>
+              <div class="form-group">
+                <label>结束时间</label>
+                <input v-model="activityForm.endTime" type="datetime-local" required />
+              </div>
+            </div>
             <div class="form-actions">
               <InkButton type="button" variant="outline" @click="closeCreateActivityDialog">取消</InkButton>
               <InkButton type="submit" :disabled="submitting">
@@ -232,7 +242,9 @@ const records = ref([])
 
 const activityForm = reactive({
   activityName: '',
-  activityDescription: ''
+  activityDescription: '',
+  startTime: '',
+  endTime: ''
 })
 
 onMounted(async () => {
@@ -281,7 +293,6 @@ async function loadPrizes() {
     prizes.value = res.data?.records || res.data || []
   } catch (error) {
     console.error('加载奖品失败', error)
-    prizes.value = []
   } finally {
     loading.prizes = false
   }
@@ -295,7 +306,6 @@ async function loadUsers() {
     users.value = res.data || []
   } catch (error) {
     console.error('加载用户失败', error)
-    users.value = []
   } finally {
     loading.users = false
   }
@@ -326,6 +336,8 @@ function closeCreateActivityDialog() {
 function resetActivityForm() {
   activityForm.activityName = ''
   activityForm.activityDescription = ''
+  activityForm.startTime = ''
+  activityForm.endTime = ''
 }
 
 async function createActivity() {
@@ -333,7 +345,9 @@ async function createActivity() {
   try {
     await activityApi.createActivity({
       activityName: activityForm.activityName,
-      activityDescription: activityForm.activityDescription
+      activityDescription: activityForm.activityDescription,
+      startTime: activityForm.startTime,
+      endTime: activityForm.endTime
     })
     closeCreateActivityDialog()
     // 刷新活动列表

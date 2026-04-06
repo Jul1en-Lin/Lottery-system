@@ -29,10 +29,10 @@
           <p>[ 刮 开 此 处 查 看 中 奖 结 果 ]</p>
         </div>
         <div class="draw-action" v-if="!drawResult">
-          <InkButton primary lottery @click="handleDraw" :disabled="isDrawing || !isActivityValid">
-            {{ isActivityValid ? '确认抽奖' : '活动已结束' }}
+          <InkButton primary lottery @click="handleDraw" :disabled="isDrawing || !activity.valid">
+            {{ activity.valid ? '确认抽奖' : '活动已结束' }}
           </InkButton>
-          <p v-if="!isActivityValid" class="draw-hint">该活动已结束，无法参与抽奖</p>
+          <p v-if="!activity.valid" class="draw-hint">该活动已结束，无法参与抽奖</p>
         </div>
         <div v-else class="draw-again">
           <InkButton @click="resetDraw">重新抽奖</InkButton>
@@ -68,12 +68,6 @@ const activity = computed(() => activityStore.currentActivity)
 const isDrawing = ref(false)
 const drawResult = ref(null)
 
-// 活动有效性判断：只有当 valid 明确为 false 时才认为活动已结束
-const isActivityValid = computed(() => {
-  if (!activity.value) return false
-  return activity.value.valid !== false
-})
-
 onMounted(() => {
   const id = route.params.id
   activityStore.fetchActivityDetail(id)
@@ -89,7 +83,7 @@ function formatDate(dateStr) {
 }
 
 async function handleDraw() {
-  if (isDrawing.value || !isActivityValid.value) return
+  if (isDrawing.value || !activity.value?.valid) return
 
   isDrawing.value = true
   try {
