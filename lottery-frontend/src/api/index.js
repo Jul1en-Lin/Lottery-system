@@ -36,9 +36,15 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || '网络请求失败'
     ElMessage.error(message)
 
+    // 401 错误处理：只有当没有 token 时才跳转登录页
+    // 如果用户有 token 但返回 401，可能是权限不足，不应该登出
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      const token = localStorage.getItem('token')
+      if (!token) {
+        // 没有 token，跳转登录页
+        window.location.href = '/login'
+      }
+      // 有 token 但 401，可能是权限不足，不处理（已显示错误消息）
     }
 
     return Promise.reject(error)

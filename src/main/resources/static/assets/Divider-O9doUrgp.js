@@ -1,0 +1,1 @@
+import{_ as s,g as t,c as a,p as r}from"./index-_iRyn-v3.js";const c={__name:"Divider",props:{type:{type:String,default:"single"}},setup(e){return(n,o)=>(t(),a("hr",{class:r(["divider",e.type])},null,2))}},i=s(c,[["__scopeId","data-v-58cad097"]]);export{i as D};
