@@ -369,7 +369,9 @@ lottery-frontend/
 
 ## Agent Team 分工方案
 
-### 阶段一：项目初始化（主 Agent）
+> **并发限制：** API 限速，采用顺序执行策略，每次只派一个 Agent。
+
+### 阶段一：项目初始化（当前会话直接执行）
 
 任务：
 - 创建 Vue 3 + Vite 项目
@@ -377,52 +379,26 @@ lottery-frontend/
 - 配置路由和状态管理
 - 设置构建输出目录为 `../src/main/resources/static`
 - 创建基础目录结构
+- 配置 API 代理和请求封装
 
-### 阶段二：模块并行开发
+### 阶段二：模块顺序开发
 
-#### Agent 1：组件库搭建
-- PaperCard 组件
-- Stamp 印章组件
-- InkButton 油墨按钮
-- NewspaperTitle 报纸标题
-- Divider 分割线
-- 纸张纹理素材
+| 顺序 | Agent | 任务内容 |
+|------|-------|----------|
+| 1 | Agent 1 | 组件库：PaperCard、Stamp、InkButton、NewspaperTitle、Divider、纹理素材 |
+| 2 | Agent 2 | 页面框架：NewspaperLayout、NavBar、Footer、路由配置完善 |
+| 3 | Agent 3 | 动画系统：翻页效果、刮奖组件、印章动画、微交互动画库 |
+| 4 | Agent 4 | 认证页面：LoginView、SignupView、ForgotPasswordView |
+| 5 | Agent 5 | 业务页面：HomeView、ActivityListView、ActivityDetailView |
+| 6 | Agent 6 | 用户相关：UserCenterView、PrizeRecordView、AdminView |
 
-#### Agent 2：页面框架
-- NewspaperLayout 布局组件
-- NavBar 导航栏
-- Footer 页脚
-- 路由配置完善
-
-#### Agent 3：动画系统
-- 翻页效果
-- 刮奖交互组件
-- 印章动画
-- 微交互动画库
-
-### 阶段三：页面并行实现
-
-#### Agent 4：认证页面群
-- LoginView 登录页
-- SignupView 注册页
-- ForgotPasswordView 忘记密码页
-
-#### Agent 5：业务页面群
-- HomeView 首页
-- ActivityListView 活动列表
-- ActivityDetailView 活动详情
-- UserCenterView 用户中心
-- PrizeRecordView 中奖记录
-
-#### Agent 6：管理页面
-- AdminView 管理后台
-
-### 阶段四：集成部署（主 Agent）
+### 阶段三：集成部署（当前会话直接执行）
 
 任务：
 - 整合所有模块
 - 配置生产构建
 - 测试构建产物
+- 验证 API 交互
 - 编写部署文档
 
 ## 构建配置
