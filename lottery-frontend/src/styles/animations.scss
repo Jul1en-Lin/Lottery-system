@@ -1,0 +1,104 @@
+// src/styles/animations.scss
+
+// 页面翻折动画
+.page-flip-enter-active {
+  animation: flip-in 0.6s ease-out;
+}
+
+.page-flip-leave-active {
+  animation: flip-out 0.4s ease-in;
+}
+
+@keyframes flip-in {
+  0% {
+    transform: perspective(1200px) rotateY(-90deg);
+    opacity: 0;
+  }
+  100% {
+    transform: perspective(1200px) rotateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes flip-out {
+  0% {
+    transform: perspective(1200px) rotateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(1200px) rotateY(90deg);
+    opacity: 0;
+  }
+}
+
+// 印章盖章动画
+.stamp-appear {
+  animation: stamp-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes stamp-down {
+  0% {
+    transform: scale(2) rotate(-15deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0.9) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1) rotate(-5deg);
+    opacity: 1;
+  }
+}
+
+// 油墨晕染效果
+.ink-spread {
+  animation: ink-spread 0.3s ease-out;
+}
+
+@keyframes ink-spread {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(26, 26, 26, 0.3);
+  }
+  100% {
+    box-shadow: inset 0 0 20px 10px rgba(26, 26, 26, 0.1);
+  }
+}
+
+// 纸张晃动
+.paper-shake:hover {
+  animation: paper-shake 0.5s ease-in-out;
+}
+
+@keyframes paper-shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-0.5deg); }
+  75% { transform: rotate(0.5deg); }
+}
+
+// 淡入效果
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 打字机效果
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2s steps(30, end);
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}

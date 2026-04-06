@@ -1,0 +1,73 @@
+// src/styles/textures.scss
+
+// 纸张纹理背景
+.paper-texture {
+  background-color: var(--paper-bg);
+  background-image: url('/textures/paper-noise.svg');
+  background-repeat: repeat;
+  position: relative;
+
+  // 老化效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(139, 139, 139, 0.1) 100%);
+    pointer-events: none;
+  }
+}
+
+// 纸张卡片基础样式
+.paper-card {
+  background-color: var(--paper-bg);
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  position: relative;
+  box-shadow:
+    2px 2px 0 rgba(0, 0, 0, 0.1),
+    inset 0 0 30px rgba(139, 139, 139, 0.05);
+
+  &:hover {
+    box-shadow:
+      4px 4px 0 rgba(0, 0, 0, 0.15),
+      inset 0 0 30px rgba(139, 139, 139, 0.08);
+  }
+}
+
+// 双线边框
+.double-border {
+  border: 3px double var(--ink-primary);
+  padding: 16px;
+}
+
+// 印刷网点效果
+.print-dots {
+  background-image: radial-gradient(circle, var(--ink-secondary) 1px, transparent 1px);
+  background-size: 4px 4px;
+  opacity: 0.3;
+}
+
+// 分割线样式
+.divider-line {
+  border: none;
+  border-top: 1px solid var(--divider-color);
+  margin: 16px 0;
+
+  &.double {
+    border-top: 3px double var(--ink-primary);
+  }
+
+  &.dashed {
+    border-top: 2px dashed var(--border-color);
+  }
+}
+
+// 报纸栏目边框
+.column-border {
+  border-left: 1px solid var(--divider-color);
+  padding-left: 16px;
+  margin-left: 16px;
+}

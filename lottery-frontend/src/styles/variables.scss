@@ -1,0 +1,46 @@
+// src/styles/variables.scss
+
+:root {
+  // 新闻纸配色
+  --paper-bg: #F5F0E1;
+  --paper-bg-dark: #EBE6D7;
+  --ink-primary: #1A1A1A;
+  --ink-secondary: #4A4A4A;
+  --stamp-red: #C41E3A;
+  --blue-ink: #2B5F8E;
+  --border-color: #8B8B8B;
+  --divider-color: #C9C4B8;
+
+  // Element Plus 主题覆盖
+  --el-color-primary: #C41E3A;
+  --el-color-primary-light-3: #E04A62;
+  --el-color-primary-light-5: #E86B7F;
+  --el-color-primary-light-7: #F08C9C;
+  --el-color-primary-light-8: #F5A3AF;
+  --el-color-primary-light-9: #FABAC4;
+
+  --el-bg-color: #F5F0E1;
+  --el-bg-color-page: #EBE6D7;
+  --el-text-color-primary: #1A1A1A;
+  --el-text-color-regular: #4A4A4A;
+  --el-border-color: #8B8B8B;
+
+  --el-font-family: 'ZCOOL KuaiLe', 'Special Elite', 'Courier New', serif;
+}
+
+// 字体大小
+$font-size-headline: 48px;
+$font-size-subtitle: 24px;
+$font-size-body: 16px;
+$font-size-small: 12px;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// 边框
+$border-style: 2px solid var(--border-color);
+$border-double: 3px double var(--ink-primary);

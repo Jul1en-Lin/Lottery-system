@@ -1,0 +1,76 @@
+// src/styles/typography.scss
+
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
+// 基础字体设置
+body {
+  font-family: 'ZCOOL KuaiLe', 'Special Elite', 'Courier New', serif;
+  color: var(--ink-primary);
+  line-height: 1.6;
+}
+
+// 标题样式
+.newspaper-headline {
+  font-size: 48px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 8px;
+  line-height: 1.2;
+  margin: 0;
+  padding: 16px 0;
+
+  &.large {
+    font-size: 64px;
+    letter-spacing: 12px;
+  }
+
+  &.subtitle {
+    font-size: 24px;
+    letter-spacing: 4px;
+  }
+}
+
+// 英文副标题
+.english-subtitle {
+  font-family: 'Special Elite', 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  text-align: center;
+  margin-top: 4px;
+}
+
+// 正文样式
+.newspaper-body {
+  font-size: 16px;
+  line-height: 1.8;
+
+  &.large {
+    font-size: 18px;
+  }
+}
+
+// 小字说明
+.newspaper-caption {
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+
+// 强调文字
+.emphasis {
+  color: var(--stamp-red);
+  font-weight: bold;
+}
+
+// 链接样式
+.newspaper-link {
+  color: var(--blue-ink);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--stamp-red);
+  }
+}

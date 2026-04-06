@@ -1,0 +1,1 @@
+import{s as e}from"./index-BKAD5tfx.js";const s={getPrizeList(r=1,t=10){return e.get("/prize/getList",{params:{page:r,size:t}})},drawPrize(r){return e.post("/drawPrize",r)},getWinningRecords(r){return e.post("/getWinningRecords",r)}};export{s as p};
