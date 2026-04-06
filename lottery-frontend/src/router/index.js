@@ -52,6 +52,11 @@ const routes = [
     name: 'ForgotPassword',
     component: () => import('@/views/ForgotPasswordView.vue'),
     meta: { guest: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFoundView.vue')
   }
 ]
 
@@ -62,24 +67,22 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
+  const userStore = useUserStore()
+  const isLoggedIn = userStore.isLoggedIn
 
   // 需要登录但未登录
-  if (to.meta.requiresAuth && !token) {
-    return next('/login')
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   // 已登录但访问登录/注册页面，重定向到首页
-  if (to.meta.guest && token) {
+  if (to.meta.guest && isLoggedIn) {
     return next('/')
   }
 
   // 需要管理员权限
-  if (to.meta.requiresAdmin) {
-    const userStore = useUserStore()
-    if (!userStore.isAdmin) {
-      return next('/')
-    }
+  if (to.meta.requiresAdmin && !userStore.isAdmin) {
+    return next('/')
   }
 
   next()

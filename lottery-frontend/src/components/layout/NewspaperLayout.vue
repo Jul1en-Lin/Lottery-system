@@ -26,5 +26,18 @@ import Footer from './Footer.vue'
   margin: 0 auto;
   padding: 20px;
   width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+  }
 }
 </style>

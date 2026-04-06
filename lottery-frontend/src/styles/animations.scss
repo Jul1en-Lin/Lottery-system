@@ -1,4 +1,11 @@
 // src/styles/animations.scss
+// ========================================
+// 新闻纸复古风格动画系统
+// ========================================
+
+// ----------------------------------------
+// 1. 页面过渡动画
+// ----------------------------------------
 
 // 页面翻折动画
 .page-flip-enter-active {
@@ -31,6 +38,41 @@
   }
 }
 
+// 增强版页面进入动画
+.page-enter-active {
+  animation: page-slide-in 0.5s ease-out;
+}
+
+.page-leave-active {
+  animation: page-slide-out 0.3s ease-in;
+}
+
+@keyframes page-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+// ----------------------------------------
+// 2. 印章动画
+// ----------------------------------------
+
 // 印章盖章动画
 .stamp-appear {
   animation: stamp-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -50,6 +92,35 @@
   }
 }
 
+// 印章盖章增强版（带墨迹扩散）
+.stamp-appear-ink {
+  animation: stamp-with-ink 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes stamp-with-ink {
+  0% {
+    transform: scale(2) rotate(-15deg);
+    opacity: 0;
+    filter: blur(2px);
+  }
+  40% {
+    transform: scale(0.85) rotate(-2deg);
+    filter: blur(0);
+  }
+  60% {
+    transform: scale(1.05) rotate(-6deg);
+  }
+  100% {
+    transform: scale(1) rotate(-5deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+// ----------------------------------------
+// 3. 油墨效果
+// ----------------------------------------
+
 // 油墨晕染效果
 .ink-spread {
   animation: ink-spread 0.3s ease-out;
@@ -64,6 +135,29 @@
   }
 }
 
+// 油墨滴落效果
+.ink-drip {
+  animation: ink-drip 0.8s ease-out forwards;
+}
+
+@keyframes ink-drip {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+// ----------------------------------------
+// 4. 纸张效果
+// ----------------------------------------
+
 // 纸张晃动
 .paper-shake:hover {
   animation: paper-shake 0.5s ease-in-out;
@@ -74,6 +168,27 @@
   25% { transform: rotate(-0.5deg); }
   75% { transform: rotate(0.5deg); }
 }
+
+// 纸张翻动效果
+.paper-flutter {
+  animation: paper-flutter 2s ease-in-out infinite;
+}
+
+@keyframes paper-flutter {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(0.3deg) translateY(-1px);
+  }
+  75% {
+    transform: rotate(-0.3deg) translateY(1px);
+  }
+}
+
+// ----------------------------------------
+// 5. 淡入淡出
+// ----------------------------------------
 
 // 淡入效果
 .fade-in {
@@ -91,6 +206,31 @@
   }
 }
 
+// 快速淡入
+.fade-in-fast {
+  animation: fade-in-fast 0.2s ease-out;
+}
+
+@keyframes fade-in-fast {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// 延迟淡入（用于列表项）
+.fade-in-delay {
+  animation: fade-in 0.3s ease-out backwards;
+}
+
+@for $i from 1 through 10 {
+  .fade-in-delay-#{$i} {
+    animation-delay: #{$i * 0.05}s;
+  }
+}
+
+// ----------------------------------------
+// 6. 打字机效果
+// ----------------------------------------
+
 // 打字机效果
 .typewriter {
   overflow: hidden;
@@ -101,4 +241,282 @@
 @keyframes typing {
   from { width: 0; }
   to { width: 100%; }
+}
+
+// 打字机光标闪烁
+.typewriter-cursor::after {
+  content: '|';
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  from, to { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+// ----------------------------------------
+// 7. 刮奖揭示动画
+// ----------------------------------------
+
+// 刮奖结果揭示
+.scratch-reveal {
+  animation: scratch-reveal 0.6s ease-out forwards;
+}
+
+@keyframes scratch-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: blur(8px);
+  }
+  50% {
+    opacity: 0.5;
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+// 金光闪烁效果（中奖时）
+.prize-glow {
+  animation: prize-glow 1.5s ease-in-out;
+}
+
+@keyframes prize-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(196, 30, 58, 0);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(196, 30, 58, 0.5);
+  }
+}
+
+// 纸屑飘落效果
+.confetti-fall {
+  animation: confetti-fall 1s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-10px) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100px) rotate(720deg);
+  }
+}
+
+// ----------------------------------------
+// 8. 按钮交互动画
+// ----------------------------------------
+
+// 按钮按下效果
+.btn-press {
+  animation: btn-press 0.15s ease-out;
+}
+
+@keyframes btn-press {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// 按钮脉冲效果
+.btn-pulse {
+  animation: btn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(196, 30, 58, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(196, 30, 58, 0);
+  }
+}
+
+// 抽奖按钮特殊效果
+.lottery-btn-glow {
+  animation: lottery-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes lottery-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(196, 30, 58, 0.3),
+                0 0 10px rgba(196, 30, 58, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(196, 30, 58, 0.5),
+                0 0 25px rgba(196, 30, 58, 0.3);
+  }
+}
+
+// ----------------------------------------
+// 9. 卡片悬停动画增强
+// ----------------------------------------
+
+// 卡片悬停提升效果
+.card-hover-lift {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(26, 26, 26, 0.15),
+              0 2px 6px rgba(26, 26, 26, 0.1);
+}
+
+// 卡片悬停边框发光
+.card-hover-glow:hover {
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1),
+              0 4px 12px rgba(26, 26, 26, 0.1);
+}
+
+// ----------------------------------------
+// 10. 加载状态动画（报纸印刷风格）
+// ----------------------------------------
+
+// 印刷滚筒旋转
+.print-roller {
+  animation: print-roller 1s linear infinite;
+}
+
+@keyframes print-roller {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// 网点脉冲（模拟印刷网点）
+.dot-matrix-pulse {
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 报纸印刷进度条
+.print-progress {
+  animation: print-progress 2s ease-in-out infinite;
+}
+
+@keyframes print-progress {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// 加载文字闪烁
+.loading-blink {
+  animation: loading-blink 1s step-end infinite;
+}
+
+@keyframes loading-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+// ----------------------------------------
+// 11. 特殊效果
+// ----------------------------------------
+
+// 高亮闪烁
+.highlight-flash {
+  animation: highlight-flash 0.5s ease-out;
+}
+
+@keyframes highlight-flash {
+  0% {
+    background-color: rgba(196, 30, 58, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+// 弹跳效果
+.bounce-in {
+  animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// 抖动效果（用于错误提示）
+.shake-error {
+  animation: shake-error 0.5s ease-in-out;
+}
+
+@keyframes shake-error {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+// ----------------------------------------
+// 12. 动画工具类
+// ----------------------------------------
+
+// 动画延迟工具类
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+
+// 动画持续时间工具类
+.animation-duration-fast { animation-duration: 0.2s; }
+.animation-duration-normal { animation-duration: 0.3s; }
+.animation-duration-slow { animation-duration: 0.5s; }
+
+// 动画迭代次数
+.animation-infinite { animation-iteration-count: infinite; }
+.animation-once { animation-iteration-count: 1; }
+
+// 动画填充模式
+.animation-forwards { animation-fill-mode: forwards; }
+.animation-backwards { animation-fill-mode: backwards; }
+.animation-both { animation-fill-mode: both; }
+
+// ----------------------------------------
+// 13. 无障碍访问 - 减少动画
+// ----------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

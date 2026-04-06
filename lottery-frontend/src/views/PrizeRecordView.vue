@@ -5,43 +5,140 @@
       subtitle="WINNING ANNOUNCEMENTS"
     />
 
-    <div class="record-list paper-card">
-      <div v-for="record in records" :key="record.winnerId" class="record-item">
-        <Stamp text="中奖" size="small" />
-        <div class="record-info">
-          <p class="winner-name">{{ record.winnerName }}</p>
-          <p class="prize-name">{{ record.prizeName }} ({{ record.prizeTier }})</p>
-          <p class="win-time">{{ formatDate(record.winningTime) }}</p>
-        </div>
-      </div>
-
-      <div v-if="records.length === 0" class="empty-state">
-        暂无中奖记录
-      </div>
+    <!-- 未登录提示 -->
+    <div v-if="!userStore.isLoggedIn" class="not-logged-in paper-card">
+      <p>您尚未登录，请先登录以查看中奖记录。</p>
+      <InkButton @click="goToLogin">前往登录</InkButton>
     </div>
+
+    <!-- 已登录内容 -->
+    <template v-else>
+      <div class="record-list paper-card">
+        <div v-if="loading" class="loading-state">
+          <LoadingSpinner />
+          <span>加载中...</span>
+        </div>
+
+        <div v-else-if="records.length === 0" class="empty-state">
+          <Stamp text="空" size="large" />
+          <p>暂无中奖记录</p>
+        </div>
+
+        <template v-else>
+          <div class="records-container">
+            <div v-for="record in records" :key="record.winnerId || record.id" class="record-item">
+              <Stamp text="中奖" size="small" />
+              <div class="record-info">
+                <div class="record-header">
+                  <p class="winner-name">{{ record.winnerName || '匿名用户' }}</p>
+                  <span class="prize-tier">{{ record.prizeTier }}</span>
+                </div>
+                <p class="prize-name">{{ record.prizeName }}</p>
+                <p class="activity-name" v-if="record.activityName">
+                  活动：{{ record.activityName }}
+                </p>
+                <p class="win-time">{{ formatDate(record.winningTime) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分页 -->
+          <div class="pagination" v-if="total > pageSize">
+            <button
+              class="page-btn"
+              :disabled="currentPage === 1"
+              @click="changePage(currentPage - 1)"
+            >
+              上一页
+            </button>
+            <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+            <button
+              class="page-btn"
+              :disabled="currentPage >= totalPages"
+              @click="changePage(currentPage + 1)"
+            >
+              下一页
+            </button>
+          </div>
+        </template>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { prizeApi } from '@/api/modules/prize'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
 import Stamp from '@/components/common/Stamp.vue'
+import InkButton from '@/components/common/InkButton.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const records = ref([])
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 onMounted(async () => {
-  try {
-    const res = await prizeApi.getWinningRecords({})
-    records.value = res.data || []
-  } catch (error) {
-    console.error('获取中奖记录失败', error)
+  if (userStore.isLoggedIn) {
+    await fetchRecords()
   }
 })
 
+async function fetchRecords() {
+  loading.value = true
+  try {
+    const res = await prizeApi.getWinningRecords({
+      page: currentPage.value,
+      size: pageSize.value
+    })
+    // 处理分页响应
+    if (res.data?.records) {
+      records.value = res.data.records
+      total.value = res.data.total || 0
+    } else if (Array.isArray(res.data)) {
+      records.value = res.data
+      total.value = res.data.length
+    } else {
+      records.value = []
+      total.value = 0
+    }
+  } catch (error) {
+    console.error('获取中奖记录失败', error)
+    records.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+function changePage(page) {
+  currentPage.value = page
+  fetchRecords()
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('zh-CN')
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function goToLogin() {
+  router.push('/login')
 }
 </script>
 
@@ -51,8 +148,42 @@ function formatDate(dateStr) {
   margin: 0 auto;
 }
 
+.not-logged-in {
+  text-align: center;
+  padding: 40px;
+}
+
+.not-logged-in p {
+  margin-bottom: 20px;
+  color: var(--ink-secondary);
+}
+
 .record-list {
   margin-top: 24px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px;
+  color: var(--ink-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--ink-secondary);
+}
+
+.empty-state p {
+  margin-top: 16px;
+}
+
+.records-container {
+  max-height: 600px;
+  overflow-y: auto;
 }
 
 .record-item {
@@ -71,13 +202,36 @@ function formatDate(dateStr) {
   flex: 1;
 }
 
+.record-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
 .winner-name {
   font-weight: bold;
-  margin: 0 0 4px 0;
+  margin: 0;
+  font-size: 16px;
+}
+
+.prize-tier {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--stamp-red);
+  color: var(--stamp-red);
 }
 
 .prize-name {
   color: var(--stamp-red);
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.activity-name {
+  font-size: 14px;
+  color: var(--ink-secondary);
   margin: 0 0 4px 0;
 }
 
@@ -87,9 +241,39 @@ function formatDate(dateStr) {
   margin: 0;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 40px;
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider-color);
+}
+
+.page-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink-primary);
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background-color: var(--paper-bg-dark);
+  border-color: var(--stamp-red);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
   color: var(--ink-secondary);
 }
 </style>

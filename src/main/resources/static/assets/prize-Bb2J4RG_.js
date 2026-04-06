@@ -1,1 +1,0 @@
-import{a as e}from"./index-tBr8EXvJ.js";const n={getPrizeList(r=1,t=10){return e.get("/prize/getList",{params:{page:r,size:t}})},drawPrize(r){return e.post("/drawPrize",r)},getWinningRecords(r){return e.post("/getWinningRecords",r)}};export{n as p};

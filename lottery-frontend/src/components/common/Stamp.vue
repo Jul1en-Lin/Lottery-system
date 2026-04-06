@@ -1,5 +1,5 @@
 <template>
-  <div class="stamp" :class="{ 'stamp-appear': animated }" :style="stampStyle">
+  <div class="stamp" :class="stampClass" :style="stampStyle">
     <span class="stamp-text">{{ text }}</span>
   </div>
 </template>
@@ -14,7 +14,7 @@ const props = defineProps({
   },
   color: {
     type: String,
-    default: '#C41E3A'
+    default: 'var(--stamp-red)'
   },
   size: {
     type: String,
@@ -27,7 +27,16 @@ const props = defineProps({
   rotation: {
     type: Number,
     default: -5
+  },
+  inkEffect: {
+    type: Boolean,
+    default: false
   }
+})
+
+const stampClass = computed(() => {
+  if (!props.animated) return ''
+  return props.inkEffect ? 'stamp-appear-ink' : 'stamp-appear'
 })
 
 const stampStyle = computed(() => ({
@@ -49,9 +58,23 @@ const stampStyle = computed(() => ({
   text-transform: uppercase;
   letter-spacing: 2px;
   opacity: 0.9;
+  position: relative;
+}
+
+.stamp::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 30%, transparent 0%, rgba(0, 0, 0, 0.05) 100%);
+  pointer-events: none;
 }
 
 .stamp-text {
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
 }
 </style>

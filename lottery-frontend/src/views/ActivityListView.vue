@@ -5,48 +5,78 @@
       subtitle="ACTIVITIES - 第 A02 版"
     />
 
-    <div class="activity-grid">
-      <div
-        v-for="activity in activityStore.activities"
-        :key="activity.activityId"
-        class="activity-card paper-card paper-shake"
-        @click="goToDetail(activity.activityId)"
-      >
-        <h3 class="activity-name">{{ activity.activityName }}</h3>
-        <p class="activity-desc">{{ activity.description }}</p>
-        <Divider />
-        <div class="activity-status">
-          <span :class="['status-badge', activity.valid ? 'active' : 'inactive']">
-            {{ activity.valid ? '进行中' : '已结束' }}
-          </span>
-        </div>
-        <InkButton @click.stop="goToDetail(activity.activityId)">参与抽奖</InkButton>
-      </div>
+    <LoadingSpinner v-if="activityStore.loading" text="加载活动列表" />
+
+    <div v-else-if="error" class="error-state paper-card">
+      <Stamp text="加载失败" color="var(--stamp-red)" size="large" :animated="false" />
+      <p class="error-hint">{{ error }}</p>
     </div>
 
-    <div v-if="activityStore.loading" class="loading">
-      加载中...
+    <div v-else-if="activityStore.activities.length > 0" class="activity-grid">
+      <LotteryCard
+        v-for="activity in activityStore.activities"
+        :key="activity.activityId"
+        :activity="activity"
+        @click="goToDetail"
+        @action="goToDetail"
+      />
+    </div>
+
+    <div v-else class="empty-state paper-card">
+      <Stamp text="暂无活动" color="var(--ink-secondary)" size="large" :animated="false" />
+      <p class="empty-hint">敬请期待新活动上线</p>
+    </div>
+
+    <div v-if="activityStore.total > pageSize" class="pagination paper-card">
+      <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+      <div class="page-buttons">
+        <InkButton :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">上一页</InkButton>
+        <InkButton :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</InkButton>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activity'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
+import LotteryCard from '@/components/business/LotteryCard.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import Stamp from '@/components/common/Stamp.vue'
 import InkButton from '@/components/common/InkButton.vue'
-import Divider from '@/components/common/Divider.vue'
 
 const router = useRouter()
 const activityStore = useActivityStore()
 
+const currentPage = ref(1)
+const pageSize = ref(10)
+const error = ref(null)
+
+const totalPages = computed(() => Math.ceil(activityStore.total / pageSize.value))
+
 onMounted(() => {
-  activityStore.fetchActivities()
+  fetchActivities()
 })
 
-function goToDetail(id) {
-  router.push(`/activity/${id}`)
+async function fetchActivities() {
+  error.value = null
+  try {
+    await activityStore.fetchActivities(currentPage.value, pageSize.value)
+  } catch (err) {
+    error.value = err.message || '加载活动列表失败'
+  }
+}
+
+function goToDetail(activity) {
+  router.push(`/activity/${activity.activityId}`)
+}
+
+async function changePage(page) {
+  currentPage.value = page
+  await fetchActivities()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>
 
@@ -63,46 +93,56 @@ function goToDetail(id) {
   margin-top: 24px;
 }
 
-.activity-card {
-  cursor: pointer;
-  transition: transform 0.2s;
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  margin-top: 24px;
 }
 
-.activity-name {
-  font-size: 20px;
-  letter-spacing: 4px;
-  margin: 0 0 8px 0;
-}
-
-.activity-desc {
+.empty-hint {
+  margin-top: 16px;
   color: var(--ink-secondary);
   font-size: 14px;
-  margin: 0;
 }
 
-.activity-status {
-  margin: 12px 0;
-}
-
-.status-badge {
-  padding: 4px 12px;
-  font-size: 12px;
-  border: 1px solid;
-}
-
-.status-badge.active {
-  color: var(--stamp-red);
-  border-color: var(--stamp-red);
-}
-
-.status-badge.inactive {
-  color: var(--ink-secondary);
-  border-color: var(--ink-secondary);
-}
-
-.loading {
+.error-state {
   text-align: center;
-  padding: 40px;
+  padding: 60px 20px;
+  margin-top: 24px;
+}
+
+.error-hint {
+  margin-top: 16px;
+  color: var(--stamp-red);
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+  padding: 16px 24px;
+}
+
+.page-info {
   color: var(--ink-secondary);
+  font-size: 14px;
+}
+
+.page-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .activity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 </style>
