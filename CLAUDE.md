@@ -86,6 +86,18 @@ npm run build                # 生产构建 → ../src/main/resources/static/
 | `/getList` | GET | 分页获取奖品列表 |
 | `/create` | POST | 创建奖品 (multipart) |
 
+## 进度记录 (Progress Records)
+
+### 2026-04-09
+- **类型**: Docs
+- **范围**: README.md
+- **变更摘要**:
+  - 更新项目描述为"后端 API + 前端 SPA"
+  - 新增前端开发命令说明（npm install/dev/build）
+  - 技术栈更新为 Vue 3 + Vite + Element Plus + Pinia
+  - 代码结构区分前端源码和构建输出目录
+- **里程碑**: README 文档与项目技术结构保持一致
+
 ## 相关文档
 
 - 设计规范：`docs/superpowers/specs/2026-04-06-newspaper-retro-frontend-redesign.md`

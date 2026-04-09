@@ -1,12 +1,24 @@
 # Lottery System
 
-简洁说明：基于 Spring Boot 的抽奖系统（后端 + 静态前端）。
+简洁说明：基于 Spring Boot + Vue 3 的抽奖系统（后端 API + 前端 SPA）。
 
 ## 要求
 - JDK 17+
 - Maven wrapper 已包含（使用 `./mvnw` 或 `mvnw.cmd`）
 
 ## 快速开始
+
+### 前端开发
+前端位于 `lottery-frontend/` 目录：
+
+```bash
+cd lottery-frontend
+npm install        # 安装依赖
+npm run dev        # 开发服务器 (localhost:3000)
+npm run build      # 生产构建 → src/main/resources/static/
+```
+
+### 后端开发
 - 构建（Windows）：
 
 - 运行 jar（示例使用 `dev` profile）：
@@ -36,11 +48,12 @@ java -jar target/lottery-system-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 - 常用库：Lombok、Hutool
 - 日志：Logback
 - 构建/运行：Maven / Maven Wrapper
-- 前端：静态资源（HTML/JS/CSS）
+- 前端：Vue 3 + Vite + Element Plus + Pinia
 
 ## 代码结构
-- 入口： [src/main/java/com/julien/lotterysystem/LotterySystemApplication.java](src/main/java/com/julien/lotterysystem/LotterySystemApplication.java)
-- 静态资源： [src/main/resources/static/](src/main/resources/static/)
+- 后端入口： [src/main/java/com/julien/lotterysystem/LotterySystemApplication.java](src/main/java/com/julien/lotterysystem/LotterySystemApplication.java)
+- 静态资源（前端构建输出）： [src/main/resources/static/](src/main/resources/static/)
+- 前端源码： [lottery-frontend/](lottery-frontend/)
 - 主要包： `controller` / `service` / `mapper` / `entity`
 
 ## 其他说明
