@@ -122,12 +122,15 @@ lottery-frontend/src/
 
 ### 2026-04-11
 - **类型**: Bugfix
-- **范围**: 后端登录拦截器配置 (`WebConfig.java`)
+- **范围**: 后端页面路由 (`AuthPageController.java`, `WebConfig.java`)
 - **变更摘要**:
-  - 修复活动详情页刷新后被拦截的问题
-  - 在 WebConfig 中添加前端路由排除: `/activities`, `/activity/**`, `/prizes`, `/user`
-  - 原因：刷新页面时浏览器直接请求 URL，不携带 token header
-- **里程碑**: 前端路由刷新现在正常工作
+  - 修复活动详情页刷新后404的问题
+  - Vue Router 使用 history 模式，需要后端支持
+  - 在 AuthPageController 中添加动态路由映射:
+    - `/activity/{id}` → activity-detail.html
+    - `/activities`, `/prizes`, `/user` → 对应HTML文件
+  - 在 WebConfig 中添加前端路由排除登录拦截
+- **里程碑**: Vue Router history 模式刷新正常工作
 
 ### 2026-04-11
 - **类型**: Bugfix
