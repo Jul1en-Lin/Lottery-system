@@ -7,14 +7,23 @@
 
     <div v-if="activity" class="detail-content">
       <div class="info-section paper-card double-border">
-        <p><strong>活动时间：</strong>{{ formatDate(activity.startTime) }} - {{ formatDate(activity.endTime) }}</p>
-        <p><strong>参与条件：</strong>注册用户均可参与</p>
+        <p class="participants-label"><strong>参与人员：</strong></p>
+        <div class="participants-list">
+          <span
+            v-for="user in activity.activityUserList"
+            :key="user.userId"
+            class="participant-tag"
+          >
+            {{ user.userName }}
+          </span>
+          <span v-if="!activity.activityUserList?.length" class="no-participants">暂无参与人员</span>
+        </div>
       </div>
 
       <div class="prize-section">
         <h3 class="section-title">奖 品 清 单</h3>
         <Divider type="double" />
-        <PrizeList :prizes="activity?.activityPrizeList || []" />
+        <PrizeList :prizes="enrichedPrizes.length > 0 ? enrichedPrizes : (activity?.activityPrizeList || [])" />
       </div>
 
       <div class="draw-section paper-card">
@@ -60,6 +69,7 @@ import ScratchArea from '@/components/business/ScratchArea.vue'
 import PrizeList from '@/components/business/PrizeList.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { prizeApi } from '@/api/modules/prize'
+import { activityApi } from '@/api/modules/activity'
 
 const route = useRoute()
 const activityStore = useActivityStore()
@@ -67,20 +77,49 @@ const activityStore = useActivityStore()
 const activity = computed(() => activityStore.currentActivity)
 const isDrawing = ref(false)
 const drawResult = ref(null)
+const enrichedPrizes = ref([])
 
-onMounted(() => {
+onMounted(async () => {
   const id = route.params.id
-  activityStore.fetchActivityDetail(id)
+  await activityStore.fetchActivityDetail(id)
+  // 补充奖品图片信息（后端返回的数据可能缺少图片URL）
+  await enrichPrizeImages()
 })
+
+/**
+ * 补充奖品图片信息
+ * 后端 getActivityDetail 返回的奖品数据缺少 imageUrl，需要单独获取奖品列表来补充
+ */
+async function enrichPrizeImages() {
+  if (!activity.value?.activityPrizeList?.length) return
+
+  try {
+    // 获取所有奖品列表
+    const res = await prizeApi.getPrizeList(1, 100)
+    const allPrizes = res.data?.records || res.data || []
+
+    // 创建奖品ID到图片URL的映射
+    const prizeImageMap = {}
+    allPrizes.forEach(prize => {
+      if (prize.prizeId && prize.imageUrl) {
+        prizeImageMap[prize.prizeId] = prize.imageUrl
+      }
+    })
+
+    // 为活动奖品补充图片URL
+    enrichedPrizes.value = activity.value.activityPrizeList.map(prize => ({
+      ...prize,
+      imageUrl: prize.imageUrl || prizeImageMap[prize.prizeId] || ''
+    }))
+  } catch (error) {
+    console.error('获取奖品图片失败:', error)
+    enrichedPrizes.value = activity.value.activityPrizeList
+  }
+}
 
 onUnmounted(() => {
   activityStore.clearCurrentActivity()
 })
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
 
 async function handleDraw() {
   if (isDrawing.value || !activity.value?.valid) return
@@ -140,6 +179,33 @@ function resetDraw() {
 
 .info-section p {
   margin: 8px 0;
+}
+
+.participants-label {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.participant-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: var(--paper-bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--ink-primary);
+}
+
+.no-participants {
+  font-size: 14px;
+  color: var(--ink-secondary);
+  font-style: italic;
 }
 
 .section-title {
