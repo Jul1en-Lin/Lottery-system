@@ -1,8 +1,19 @@
 package com.julien.lotterysystem.controller;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * SPA 页面路由转发：所有前端路由都返回 index.html
@@ -93,11 +104,22 @@ public class AuthPageController {
     }
 
     /**
-     * Fallback 路由：捕获所有未匹配的前端路由，返回 index.html
-     * 确保 SPA 路由刷新时不会返回 404
+     * Fallback 路由：捕获所有未匹配的前端路由，直接返回 index.html 内容
+     * 确保 SPA 路由刷新时返回正确的 HTML 内容
      */
     @GetMapping("/{*path}")
-    public String fallback() {
-        return "forward:/index.html";
+    @ResponseBody
+    public ResponseEntity<String> fallback(@PathVariable String path) {
+        try {
+            Resource resource = new ClassPathResource("static/index.html");
+            InputStream inputStream = resource.getInputStream();
+            String html = StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error loading index.html: " + e.getMessage());
+        }
     }
 }

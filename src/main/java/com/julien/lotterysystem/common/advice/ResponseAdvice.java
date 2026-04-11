@@ -28,6 +28,11 @@ public class ResponseAdvice implements ResponseBodyAdvice {
 
     @Override
     public @Nullable Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType, MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
+        // 如果是 text/html 类型的响应（如 SPA fallback 的 index.html），不进行包装
+        if (selectedContentType != null && selectedContentType.includes(MediaType.TEXT_HTML)) {
+            return body;
+        }
+
         if (body instanceof Result<?>){
             return body;
         }

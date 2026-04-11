@@ -2,26 +2,14 @@ package com.julien.lotterysystem.common.config;
 
 import com.julien.lotterysystem.common.interceptor.LoginInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private LoginInterceptor loginInterceptor;
-
-    @Value("${picture.destPath:${user.dir}/picture/}")
-    private String pictureDestPath;
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置 /picture/** 映射到本地文件系统的图片目录
-        registry.addResourceHandler("/picture/**")
-                .addResourceLocations("file:" + pictureDestPath);
-    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -48,6 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
                     "/activity/**",
                     "/prizes",
                     "/user",
+                    "/admin",
                     "/getWinningRecords",
                     "/drawPrize",
                     "/error");
