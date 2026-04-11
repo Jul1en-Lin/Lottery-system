@@ -27,25 +27,58 @@
       </div>
 
       <div class="draw-section paper-card">
-        <LoadingSpinner v-if="isDrawing" text="抽奖中" />
-        <template v-else-if="drawResult">
-          <ScratchArea
-            :result="drawResult"
-            @reveal="handleReveal"
-          />
+        <!-- 活动已结束：显示中奖名单 -->
+        <template v-if="activity.status !== 'START'">
+          <div class="winners-section">
+            <h3 class="section-title">中 奖 名 单</h3>
+            <Divider type="double" />
+            <div v-if="loadingWinners" class="loading-winners">
+              <LoadingSpinner text="加载中奖名单" />
+            </div>
+            <div v-else-if="winnersList.length > 0" class="winners-list">
+              <div v-for="(record, index) in winnersList" :key="index" class="winner-item">
+                <div class="winner-info">
+                  <span class="winner-prize">{{ record.prizeName }}</span>
+                  <span class="winner-tier" v-if="record.prizeTier">{{ getTierName(record.prizeTier) }}</span>
+                </div>
+                <div class="winner-name">
+                  <Stamp text="中奖" color="#C41E3A" size="small" :animated="false" />
+                  <span class="name">{{ record.winnerName }}</span>
+                </div>
+                <div class="winner-time">{{ formatTime(record.winningTime) }}</div>
+              </div>
+            </div>
+            <div v-else class="no-winners">
+              <Stamp text="暂无中奖记录" color="var(--ink-secondary)" size="medium" :animated="false" />
+            </div>
+          </div>
+          <div class="draw-action">
+            <InkButton disabled>活动已结束</InkButton>
+            <p class="draw-hint">该活动已结束，以下是最终中奖名单</p>
+          </div>
         </template>
-        <div v-else class="scratch-placeholder">
-          <p>[ 刮 开 此 处 查 看 中 奖 结 果 ]</p>
-        </div>
-        <div class="draw-action" v-if="!drawResult">
-          <InkButton primary lottery @click="handleDraw" :disabled="isDrawing || activity.status !== 'START'">
-            {{ activity.status === 'START' ? '确认抽奖' : '活动已结束' }}
-          </InkButton>
-          <p v-if="activity.status !== 'START'" class="draw-hint">该活动已结束，无法参与抽奖</p>
-        </div>
-        <div v-else class="draw-again">
-          <InkButton @click="resetDraw">重新抽奖</InkButton>
-        </div>
+
+        <!-- 活动进行中：显示刮奖区域 -->
+        <template v-else>
+          <LoadingSpinner v-if="isDrawing" text="抽奖中" />
+          <template v-else-if="drawResult">
+            <ScratchArea
+              :result="drawResult"
+              @reveal="handleReveal"
+            />
+          </template>
+          <div v-else class="scratch-placeholder">
+            <p>[ 刮 开 此 处 查 看 中 奖 结 果 ]</p>
+          </div>
+          <div class="draw-action" v-if="!drawResult">
+            <InkButton primary lottery @click="handleDraw" :disabled="isDrawing">
+              确认抽奖
+            </InkButton>
+          </div>
+          <div v-else class="draw-again">
+            <InkButton @click="resetDraw">重新抽奖</InkButton>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -70,6 +103,7 @@ import PrizeList from '@/components/business/PrizeList.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { prizeApi } from '@/api/modules/prize'
 import { ElMessage } from 'element-plus'
+import { getTierName } from '@/utils/index.js'
 
 const route = useRoute()
 const activityStore = useActivityStore()
@@ -77,15 +111,49 @@ const activityStore = useActivityStore()
 const activity = computed(() => activityStore.currentActivity)
 const isDrawing = ref(false)
 const drawResult = ref(null)
+const winnersList = ref([])
+const loadingWinners = ref(false)
 
 onMounted(() => {
   const id = route.params.id
   activityStore.fetchActivityDetail(id)
+  fetchWinningRecords(id)
 })
 
 onUnmounted(() => {
   activityStore.clearCurrentActivity()
 })
+
+/**
+ * 获取中奖记录
+ */
+async function fetchWinningRecords(activityId) {
+  loadingWinners.value = true
+  try {
+    const res = await prizeApi.getWinningRecords({ activityId: Number(activityId) })
+    winnersList.value = res.data || []
+  } catch (error) {
+    console.error('Failed to fetch winning records:', error)
+    winnersList.value = []
+  } finally {
+    loadingWinners.value = false
+  }
+}
+
+/**
+ * 格式化时间
+ */
+function formatTime(time) {
+  if (!time) return ''
+  const date = new Date(time)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 /**
  * 执行随机抽奖
@@ -270,5 +338,78 @@ function resetDraw() {
 .error-state {
   text-align: center;
   padding: 60px 20px;
+}
+
+/* 中奖名单样式 */
+.winners-section {
+  width: 100%;
+  max-width: 600px;
+}
+
+.loading-winners {
+  padding: 40px 0;
+}
+
+.winners-list {
+  margin-top: 16px;
+  text-align: left;
+}
+
+.winner-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: var(--paper-bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.winner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.winner-prize {
+  font-weight: bold;
+  color: var(--ink-primary);
+}
+
+.winner-tier {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  background-color: var(--paper-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.winner-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.winner-name .name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--accent-color, #C41E3A);
+}
+
+.winner-time {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  font-style: italic;
+}
+
+.no-winners {
+  padding: 40px 0;
+  text-align: center;
 }
 </style>
