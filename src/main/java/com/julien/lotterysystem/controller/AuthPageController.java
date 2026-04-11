@@ -91,4 +91,13 @@ public class AuthPageController {
     public String admin() {
         return "forward:/index.html";
     }
+
+    /**
+     * Fallback 路由：捕获所有未匹配的前端路由，返回 index.html
+     * 确保 SPA 路由刷新时不会返回 404
+     */
+    @GetMapping("/{*path}")
+    public String fallback() {
+        return "forward:/index.html";
+    }
 }
