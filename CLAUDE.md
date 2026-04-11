@@ -120,6 +120,15 @@ lottery-frontend/src/
 
 ## 进度记录 (Progress Records)
 
+### 2026-04-11
+- **类型**: UI 优化
+- **范围**: 活动卡片组件 (`lottery-frontend/src/components/business/LotteryCard.vue`)
+- **变更摘要**:
+  - 移除活动卡片上的"剩余时间"显示区域（显示为"未知"，对用户无价值）
+  - 删除相关的 `remainingTime` 和 `timeClass` 计算属性
+  - 清理不再使用的样式（.urgent、.warning、@keyframes urgent-pulse）
+- **里程碑**: 修复 Issue #7，活动卡片界面更加简洁
+- **关联 Issue**: #7
 
 ## 当前进度
 

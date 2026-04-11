@@ -12,10 +12,6 @@
 
       <div class="activity-meta">
         <div class="meta-item">
-          <span class="meta-label">剩余时间</span>
-          <span class="meta-value" :class="timeClass">{{ remainingTime }}</span>
-        </div>
-        <div class="meta-item">
           <span class="meta-label">奖品数量</span>
           <span class="meta-value">{{ prizeCount }}</span>
         </div>
@@ -75,34 +71,6 @@ const englishSubtitle = computed(() => {
 
 const prizeCount = computed(() => {
   return props.activity.prizeCount || 0
-})
-
-const remainingTime = computed(() => {
-  if (!props.activity.endTime) return '未知'
-
-  const now = new Date()
-  const end = new Date(props.activity.endTime)
-
-  if (end <= now) return '已结束'
-
-  const diff = end - now
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-
-  if (days > 0) return `${days}天${hours}小时`
-  return `${hours}小时`
-})
-
-const timeClass = computed(() => {
-  if (!props.activity.endTime) return ''
-  const now = new Date()
-  const end = new Date(props.activity.endTime)
-  const diff = end - now
-  const hours = diff / (1000 * 60 * 60)
-
-  if (hours < 24) return 'urgent'
-  if (hours < 72) return 'warning'
-  return ''
 })
 
 function handleClick() {
@@ -198,20 +166,6 @@ function handleAction() {
 .meta-value {
   font-size: 14px;
   font-weight: bold;
-}
-
-.meta-value.urgent {
-  color: var(--stamp-red);
-  animation: urgent-pulse 1s ease-in-out infinite;
-}
-
-@keyframes urgent-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.meta-value.warning {
-  color: #B8860B;
 }
 
 .card-footer {
