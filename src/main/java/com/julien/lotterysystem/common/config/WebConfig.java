@@ -31,8 +31,10 @@ public class WebConfig implements WebMvcConfigurer {
                     "/activity-list", "/activity-list.html",
                     "/activity-detail", "/activity-detail.html",
                     "/prize-record", "/prize-record.html",
-                    "/activity/queryList",
-                    "/activity/getDetail",
+                    "/activities",
+                    "/activity/**",
+                    "/prizes",
+                    "/user",
                     "/getWinningRecords",
                     "/drawPrize",
                     "/error");

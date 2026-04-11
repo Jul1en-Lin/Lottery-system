@@ -122,6 +122,15 @@ lottery-frontend/src/
 
 ### 2026-04-11
 - **类型**: Bugfix
+- **范围**: 后端登录拦截器配置 (`WebConfig.java`)
+- **变更摘要**:
+  - 修复活动详情页刷新后被拦截的问题
+  - 在 WebConfig 中添加前端路由排除: `/activities`, `/activity/**`, `/prizes`, `/user`
+  - 原因：刷新页面时浏览器直接请求 URL，不携带 token header
+- **里程碑**: 前端路由刷新现在正常工作
+
+### 2026-04-11
+- **类型**: Bugfix
 - **范围**: 前端奖品图片显示 (`PrizeList.vue`)
 - **变更摘要**:
   - 修复活动详情页奖品图片无法显示的问题
