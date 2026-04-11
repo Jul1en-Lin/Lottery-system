@@ -69,6 +69,7 @@ import ScratchArea from '@/components/business/ScratchArea.vue'
 import PrizeList from '@/components/business/PrizeList.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { prizeApi } from '@/api/modules/prize'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const activityStore = useActivityStore()
@@ -86,37 +87,86 @@ onUnmounted(() => {
   activityStore.clearCurrentActivity()
 })
 
+/**
+ * 执行随机抽奖
+ * 1. 从可用奖品中随机选择一个
+ * 2. 从参与者中随机选择中奖者
+ * 3. 构造请求发送给后端
+ */
 async function handleDraw() {
   if (isDrawing.value || activity.value?.status !== 'START') return
 
-  isDrawing.value = true
-  try {
-    const res = await prizeApi.drawPrize({ activityId: activity.value.activityId })
-    const data = res.data
+  const prizes = activity.value.activityPrizeList || []
+  const participants = activity.value.activityUserList || []
 
-    if (data && data.prizeName) {
-      drawResult.value = {
-        won: true,
-        prizeName: data.prizeName,
-        message: `恭喜您获得 ${data.prizeName}！`
-      }
-    } else {
-      drawResult.value = {
-        won: false,
-        prizeName: null,
-        message: '感谢您的参与，下次好运！'
-      }
+  // 检查是否有可用的奖品
+  const availablePrizes = prizes.filter(p => p.prizeStatus === 'INIT')
+  if (availablePrizes.length === 0) {
+    ElMessage.warning('没有可抽取的奖品')
+    return
+  }
+
+  // 检查是否有参与者
+  const availableParticipants = participants.filter(u => u.userStatus === 'INIT')
+  if (availableParticipants.length === 0) {
+    ElMessage.warning('没有可参与的抽奖人员')
+    return
+  }
+
+  isDrawing.value = true
+
+  try {
+    // 1. 随机选择一个奖品
+    const selectedPrize = availablePrizes[Math.floor(Math.random() * availablePrizes.length)]
+
+    // 2. 根据奖品数量随机选择中奖者
+    const winnerCount = Math.min(selectedPrize.prizeAmount, availableParticipants.length)
+    const winners = shuffleArray([...availableParticipants]).slice(0, winnerCount)
+
+    // 3. 构造请求
+    const drawRequest = {
+      activityId: activity.value.activityId,
+      prizeId: selectedPrize.prizeId,
+      winningTime: new Date().toISOString(),
+      prizeTiers: selectedPrize.prizeTiers,
+      winnerList: winners.map(w => ({
+        userId: w.userId,
+        userName: w.userName
+      }))
     }
+
+    // 4. 发送请求
+    const res = await prizeApi.drawPrize(drawRequest)
+
+    // 5. 显示结果
+    drawResult.value = {
+      won: true,
+      prizeName: selectedPrize.prizeName,
+      prizeTiers: selectedPrize.prizeTiers,
+      winners: winners.map(w => w.userName),
+      message: `恭喜：${winners.map(w => w.userName).join('、')} 获得 ${selectedPrize.prizeName}！`
+    }
+
+    // 刷新活动详情以更新状态
+    activityStore.fetchActivityDetail(route.params.id)
+
   } catch (error) {
     console.error('Draw prize failed:', error)
-    drawResult.value = {
-      won: false,
-      prizeName: null,
-      message: '抽奖失败，请稍后重试'
-    }
+    ElMessage.error('抽奖失败，请稍后重试')
   } finally {
     isDrawing.value = false
   }
+}
+
+/**
+ * 数组随机打乱（Fisher-Yates 洗牌算法）
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]
+  }
+  return array
 }
 
 function handleReveal(result) {
