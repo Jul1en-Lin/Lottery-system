@@ -48,14 +48,10 @@
             <div v-else class="data-table">
               <div class="table-header">
                 <span class="col-name">活动名称</span>
-                <span class="col-time">开始时间</span>
-                <span class="col-time">结束时间</span>
                 <span class="col-status">状态</span>
               </div>
               <div v-for="activity in activities" :key="activity.activityId" class="table-row">
                 <span class="col-name">{{ activity.activityName }}</span>
-                <span class="col-time">{{ formatDate(activity.startTime) }}</span>
-                <span class="col-time">{{ formatDate(activity.endTime) }}</span>
                 <span class="col-status">
                   <span :class="['status-badge', activity.valid ? 'active' : 'inactive']">
                     {{ activity.valid ? '进行中' : '已结束' }}
