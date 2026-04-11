@@ -1,0 +1,1 @@
+import{a as i}from"./index-Bw7mkLVE.js";const r={getActivityList(t=1,a=10){return i.get("/activity/queryList",{params:{page:t,size:a}})},getActivityDetail(t){return i.get("/activity/getDetail",{params:{activityId:t}})},createActivity(t){return i.post("/activity/create",t)}};export{r as a};
