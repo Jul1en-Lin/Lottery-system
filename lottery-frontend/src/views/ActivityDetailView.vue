@@ -87,7 +87,7 @@ onUnmounted(() => {
 })
 
 async function handleDraw() {
-  if (isDrawing.value || !activity.value?.valid) return
+  if (isDrawing.value || activity.value?.status !== 'START') return
 
   isDrawing.value = true
   try {
