@@ -125,10 +125,9 @@ lottery-frontend/src/
 - **范围**: 后端页面路由 (`AuthPageController.java`, `WebConfig.java`)
 - **变更摘要**:
   - 修复活动详情页刷新后404的问题
-  - Vue Router 使用 history 模式，需要后端支持
-  - 在 AuthPageController 中添加动态路由映射:
-    - `/activity/{id}` → activity-detail.html
-    - `/activities`, `/prizes`, `/user` → 对应HTML文件
+  - Vue 是单页应用(SPA)，所有路由都应该返回 index.html
+  - 在 AuthPageController 中修改所有路由映射:
+    - `/`, `/login`, `/signup`, `/activities`, `/activity/{id}`, `/user`, `/prizes` → index.html
   - 在 WebConfig 中添加前端路由排除登录拦截
 - **里程碑**: Vue Router history 模式刷新正常工作
 
