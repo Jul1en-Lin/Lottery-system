@@ -52,23 +52,21 @@
 
 ## 🛠️ 技术栈
 
-### 后端
-| 技术 | 说明 |
-|------|------|
-| Spring Boot 4 | 核心框架 |
-| MyBatis-Plus | ORM 框架 |
-| Redis | 缓存 |
-| RabbitMQ | 消息队列 |
-| JWT | 身份认证 |
-| MySQL | 数据库 |
+<p align="center">
+  <img src="https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=spring-boot&logoColor=white" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/MyBatis--Plus-FF6C37?logo=mybatis&logoColor=white" alt="MyBatis-Plus">
+  <img src="https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white" alt="Redis">
+  <img src="https://img.shields.io/badge/RabbitMQ-FF6600?logo=rabbitmq&logoColor=white" alt="RabbitMQ">
+  <img src="https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white" alt="JWT">
+  <img src="https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white" alt="MySQL">
+</p>
 
-### 前端
-| 技术 | 说明 |
-|------|------|
-| Vue 3 | 前端框架 |
-| Vite | 构建工具 |
-| Element Plus | UI 组件库 |
-| Pinia | 状态管理 |
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue%203-4FC08D?logo=vue.js&logoColor=white" alt="Vue 3">
+  <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Element%20Plus-409EFF?logo=element&logoColor=white" alt="Element Plus">
+  <img src="https://img.shields.io/badge/Pinia-F7D336?logo=pinia&logoColor=white" alt="Pinia">
+</p>
 
 ## 📋 环境要求
 
