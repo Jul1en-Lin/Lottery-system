@@ -88,37 +88,49 @@ lottery-frontend/src/
 
 ## 后端 API 端点
 
-### 用户模块 `/user`
+### 用户模块 `/api/user`
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/register` | POST | 用户注册 |
-| `/sendEmailCode` | POST | 发送邮箱验证码 |
-| `/emailRegister` | POST | 邮箱验证码注册 |
-| `/admin/sendEmailCode` | POST | 发送管理员邮箱验证码 |
-| `/admin/emailLogin` | POST | 管理员邮箱登录 |
-| `/admin/passwordLogin` | POST | 管理员密码登录 |
-| `/getListInfo` | GET | 获取用户列表 |
+| `/api/user/register` | POST | 用户注册 |
+| `/api/user/sendEmailCode` | POST | 发送邮箱验证码 |
+| `/api/user/emailRegister` | POST | 邮箱验证码注册 |
+| `/api/user/admin/sendEmailCode` | POST | 发送管理员邮箱验证码 |
+| `/api/user/admin/emailLogin` | POST | 管理员邮箱登录 |
+| `/api/user/admin/passwordLogin` | POST | 管理员密码登录 |
+| `/api/user/getListInfo` | GET | 获取用户列表 |
 
-### 活动模块 `/activity`
+### 活动模块 `/api/activity`
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/create` | POST | 创建活动 |
-| `/queryList` | GET | 分页查询活动列表 |
-| `/getDetail` | GET | 获取活动详情 |
+| `/api/activity/create` | POST | 创建活动 |
+| `/api/activity/queryList` | GET | 分页查询活动列表 |
+| `/api/activity/getDetail` | GET | 获取活动详情 |
 
-### 抽奖模块
+### 抽奖模块 `/api`
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/drawPrize` | POST | 抽奖 |
-| `/getWinningRecords` | POST | 获取中奖记录 |
+| `/api/drawPrize` | POST | 抽奖 |
+| `/api/getWinningRecords` | POST | 获取中奖记录 |
 
-### 奖品模块 `/prize`
+### 奖品模块 `/api/prize`
 | 端点 | 方法 | 描述 |
 |------|------|------|
-| `/getList` | GET | 分页获取奖品列表 |
-| `/create` | POST | 创建奖品 (multipart/form-data) |
+| `/api/prize/getList` | GET | 分页获取奖品列表 |
+| `/api/prize/create` | POST | 创建奖品 (multipart/form-data) |
 
 ## 进度记录 (Progress Records)
+
+### 2026-04-11
+- **类型**: Bugfix
+- **范围**: 后端路由架构 (所有 Controller 和 WebConfig)
+- **变更摘要**:
+  - 修复活动详情页刷新后白屏问题 (issue #4)
+  - 根因：`ActivityController` 的类级别 `@RequestMapping("/activity")` 与 `AuthPageController` 的 `/activity/{id}` 路由冲突
+  - 解决方案：所有 API 端点前缀统一改为 `/api/**`，与前端路由分离
+  - 更新文件：
+    - 后端：`ActivityController`, `UserController`, `PrizeController`, `DrawPrizeController`, `WebConfig`
+    - 前端：`activity.js`, `user.js`, `prize.js`
+- **里程碑**: 修复 issue #4，API 与前端路由分离，SPA 刷新正常工作
 
 ### 2026-04-11
 - **类型**: Bugfix

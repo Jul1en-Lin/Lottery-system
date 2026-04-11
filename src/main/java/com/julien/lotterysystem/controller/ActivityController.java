@@ -14,7 +14,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/activity")
+@RequestMapping("/api/activity")
 public class ActivityController {
 
     @Autowired

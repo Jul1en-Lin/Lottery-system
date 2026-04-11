@@ -1,0 +1,1 @@
+import{a as i}from"./index-WCeY3qmY.js";const p={getPrizeList(r=1,e=10){return i.get("/api/prize/getList",{params:{page:r,size:e}})},drawPrize(r){return i.post("/api/drawPrize",r)},getWinningRecords(r){return i.post("/api/getWinningRecords",r)}};export{p};
