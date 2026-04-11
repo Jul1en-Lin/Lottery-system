@@ -61,8 +61,9 @@ public class AuthPageController {
 
     /**
      * 活动详情页（动态路由）
+     * 使用正则表达式限制只匹配数字ID，避免匹配API路径如 /activity/queryList
      */
-    @GetMapping("/activity/{id}")
+    @GetMapping("/activity/{id:\\d+}")
     public String activityDetail(@PathVariable String id) {
         return "forward:/index.html";
     }
