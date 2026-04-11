@@ -24,7 +24,7 @@
 
     <div class="card-footer">
       <Stamp
-        v-if="activity.status === 'START'"
+        v-if="activity.valid"
         text="进行中"
         color="#C41E3A"
         size="small"
@@ -40,8 +40,8 @@
 
       <InkButton
         v-if="showAction"
-        :disabled="activity.status !== 'START'"
-        :lottery="activity.status === 'START'"
+        :disabled="!activity.valid"
+        :lottery="activity.valid"
         @click.stop="handleAction"
       >
         参与抽奖

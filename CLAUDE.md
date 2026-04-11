@@ -122,12 +122,13 @@ lottery-frontend/src/
 
 ### 2026-04-11
 - **类型**: Bugfix
-- **范围**: 前端活动状态显示 (`ActivityDetailView.vue`, `LotteryCard.vue`)
+- **范围**: 前端活动状态显示 (`LotteryCard.vue`)
 - **变更摘要**:
-  - 修复活动详情页错误显示"活动已结束"的问题
-  - 将状态判断从 `activity.valid` 改为 `activity.status === 'START'`
-  - 修改文件: `ActivityDetailView.vue`, `LotteryCard.vue`
-- **里程碑**: 修复 issue #2，活动状态现在正确显示
+  - 修复活动列表页全部显示"已结束"的问题
+  - 原因：不同接口返回不同字段，列表接口返回 `valid`，详情接口返回 `status`
+  - `LotteryCard` 用于活动列表，应使用 `activity.valid`
+  - `ActivityDetailView` 用于活动详情，应使用 `activity.status`
+- **里程碑**: 修复活动列表页状态显示问题
 
 ### 2026-04-11
 - **类型**: Bugfix
