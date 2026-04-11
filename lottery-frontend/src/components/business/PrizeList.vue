@@ -12,8 +12,8 @@
       >
         <div class="prize-image-container">
           <img
-            v-if="prize.imageUrl"
-            :src="getFullImageUrl(prize.imageUrl)"
+            v-if="prize.imageUrl || prize.url"
+            :src="getFullImageUrl(prize.imageUrl || prize.url)"
             :alt="prize.prizeName"
             class="prize-image"
           />
@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import Stamp from '@/components/common/Stamp.vue'
 import { getTierName } from '@/utils/index.js'
 
@@ -56,6 +56,17 @@ const props = defineProps({
     default: false
   }
 })
+
+// 调试：打印奖品数据
+watch(() => props.prizes, (newPrizes) => {
+  console.log('PrizeList received prizes:', newPrizes)
+  if (newPrizes?.length > 0) {
+    console.log('First prize:', newPrizes[0])
+    console.log('First prize keys:', Object.keys(newPrizes[0]))
+    console.log('First prize imageUrl:', newPrizes[0].imageUrl)
+    console.log('First prize image_url:', newPrizes[0].image_url)
+  }
+}, { immediate: true })
 
 /**
  * 获取完整的图片URL
