@@ -13,7 +13,7 @@
         <div class="prize-image-container">
           <img
             v-if="prize.imageUrl"
-            :src="prize.imageUrl"
+            :src="getFullImageUrl(prize.imageUrl)"
             :alt="prize.prizeName"
             class="prize-image"
           />
@@ -62,6 +62,20 @@ const tierNames = {
   3: '三等奖',
   4: '四等奖',
   5: '五等奖'
+}
+
+/**
+ * 获取完整的图片URL
+ * 后端返回的文件名需要拼接为 /picture/ 路径
+ */
+function getFullImageUrl(url) {
+  if (!url) return ''
+  // 如果已经是完整URL或以 / 开头，直接返回
+  if (url.startsWith('http') || url.startsWith('/')) {
+    return url
+  }
+  // 拼接 /picture/ 前缀
+  return `/picture/${url}`
 }
 
 function getTierName(tier) {
