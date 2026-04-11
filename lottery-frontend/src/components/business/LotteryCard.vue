@@ -74,10 +74,7 @@ const englishSubtitle = computed(() => {
 })
 
 const prizeCount = computed(() => {
-  if (props.activity.activityPrizeList) {
-    return props.activity.activityPrizeList.length
-  }
-  return 0
+  return props.activity.prizeCount || 0
 })
 
 const remainingTime = computed(() => {

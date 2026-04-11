@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
-@RequestMapping("/api/prize")
+@RequestMapping("/prize")
 public class PrizeController {
 
     @Autowired

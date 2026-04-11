@@ -1,0 +1,1 @@
+import{_ as s,g as t,c as a,n as r}from"./index-a7EWpE0n.js";const c={__name:"Divider",props:{type:{type:String,default:"single"}},setup(e){return(n,o)=>(t(),a("hr",{class:r(["divider",e.type])},null,2))}},p=s(c,[["__scopeId","data-v-58cad097"]]);export{p as D};

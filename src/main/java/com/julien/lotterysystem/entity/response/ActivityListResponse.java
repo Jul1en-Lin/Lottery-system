@@ -36,5 +36,10 @@ public class ActivityListResponse {
          * 活动是否有效
          */
         private Boolean valid;
+
+        /**
+         * 奖品总数（该活动下所有奖品数量的总和）
+         */
+        private Long prizeCount;
     }
 }

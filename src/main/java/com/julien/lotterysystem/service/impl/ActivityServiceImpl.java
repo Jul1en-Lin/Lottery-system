@@ -323,6 +323,9 @@ public class ActivityServiceImpl implements ActivityService {
                     activityInfo.setActivityName(activity.getActivityName());
                     activityInfo.setDescription(activity.getDescription());
                     activityInfo.setValid(ActivityStatusEnum.START.name().equals(activity.getStatus()));
+                    // 查询该活动的奖品数量总和
+                    Long prizeCount = getActivityPrizeCount(activity.getId());
+                    activityInfo.setPrizeCount(prizeCount);
                     return activityInfo;
                 })
                 .toList();
@@ -334,6 +337,25 @@ public class ActivityServiceImpl implements ActivityService {
         response.setTotal(total);
         response.setRecords(activityInfoList);
         return response;
+    }
+
+    /**
+     * 查询活动的奖品数量总和
+     * @param activityId 活动id
+     * @return 奖品数量总和
+     */
+    private Long getActivityPrizeCount(Long activityId) {
+        try {
+            List<ActivityPrize> activityPrizes = activityPrizeMapper.selectList(
+                    new LambdaQueryWrapper<ActivityPrize>()
+                            .eq(ActivityPrize::getActivityId, activityId));
+            return activityPrizes.stream()
+                    .mapToLong(ActivityPrize::getPrizeAmount)
+                    .sum();
+        } catch (Exception e) {
+            log.error("查询活动奖品数量失败，activityId: {}", activityId, e);
+            return 0L;
+        }
     }
 
     /**
