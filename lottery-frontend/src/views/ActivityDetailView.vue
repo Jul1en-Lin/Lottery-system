@@ -29,10 +29,10 @@
           <p>[ 刮 开 此 处 查 看 中 奖 结 果 ]</p>
         </div>
         <div class="draw-action" v-if="!drawResult">
-          <InkButton primary lottery @click="handleDraw" :disabled="isDrawing || !activity.valid">
-            {{ activity.valid ? '确认抽奖' : '活动已结束' }}
+          <InkButton primary lottery @click="handleDraw" :disabled="isDrawing || activity.status !== 'START'">
+            {{ activity.status === 'START' ? '确认抽奖' : '活动已结束' }}
           </InkButton>
-          <p v-if="!activity.valid" class="draw-hint">该活动已结束，无法参与抽奖</p>
+          <p v-if="activity.status !== 'START'" class="draw-hint">该活动已结束，无法参与抽奖</p>
         </div>
         <div v-else class="draw-again">
           <InkButton @click="resetDraw">重新抽奖</InkButton>

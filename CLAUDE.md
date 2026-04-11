@@ -122,6 +122,15 @@ lottery-frontend/src/
 
 ### 2026-04-11
 - **类型**: Bugfix
+- **范围**: 前端活动状态显示 (`ActivityDetailView.vue`, `LotteryCard.vue`)
+- **变更摘要**:
+  - 修复活动详情页错误显示"活动已结束"的问题
+  - 将状态判断从 `activity.valid` 改为 `activity.status === 'START'`
+  - 修改文件: `ActivityDetailView.vue`, `LotteryCard.vue`
+- **里程碑**: 修复 issue #2，活动状态现在正确显示
+
+### 2026-04-11
+- **类型**: Bugfix
 - **范围**: 前端首页 (`lottery-frontend/src/views/HomeView.vue`)
 - **变更摘要**:
   - 修复"查看全部活动"按钮点击无反应的问题
