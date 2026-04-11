@@ -62,7 +62,7 @@
 
     <div class="action-buttons">
       <InkButton @click="goToActivities">立即参与</InkButton>
-      <InkButton @click="scrollToActivities">查看全部活动</InkButton>
+      <InkButton @click="goToActivities">查看全部活动</InkButton>
     </div>
   </div>
 </template>
@@ -128,13 +128,6 @@ function maskUsername(username) {
 
 function goToActivities() {
   router.push('/activities')
-}
-
-function scrollToActivities() {
-  const activitiesSection = document.querySelector('.column:first-child')
-  if (activitiesSection) {
-    activitiesSection.scrollIntoView({ behavior: 'smooth' })
-  }
 }
 
 function goToDetail(id) {
