@@ -44,6 +44,7 @@
 <script setup>
 import { computed } from 'vue'
 import Stamp from '@/components/common/Stamp.vue'
+import { getTierName } from '@/utils/index.js'
 
 const props = defineProps({
   prizes: {
@@ -55,14 +56,6 @@ const props = defineProps({
     default: false
   }
 })
-
-const tierNames = {
-  1: '一等奖',
-  2: '二等奖',
-  3: '三等奖',
-  4: '四等奖',
-  5: '五等奖'
-}
 
 /**
  * 获取完整的图片URL
@@ -76,10 +69,6 @@ function getFullImageUrl(url) {
   }
   // 拼接 /picture/ 前缀
   return `/picture/${url}`
-}
-
-function getTierName(tier) {
-  return tierNames[tier] || `${tier}等奖`
 }
 
 /**

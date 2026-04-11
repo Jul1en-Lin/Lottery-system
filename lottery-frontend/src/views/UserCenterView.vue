@@ -56,7 +56,7 @@
             <Stamp text="中奖" size="small" />
             <div class="record-info">
               <p class="prize-name">{{ record.prizeName }}</p>
-              <p class="prize-tier">奖项等级：{{ record.prizeTier }}</p>
+              <p class="prize-tier">奖项等级：{{ getTierName(record.prizeTier) }}</p>
               <p class="win-time">{{ formatDate(record.winningTime) }}</p>
             </div>
           </div>
@@ -86,6 +86,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { prizeApi } from '@/api/modules/prize'
+import { getTierName } from '@/utils/index.js'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
 import Divider from '@/components/common/Divider.vue'
 import InkButton from '@/components/common/InkButton.vue'

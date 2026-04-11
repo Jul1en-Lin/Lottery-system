@@ -31,3 +31,34 @@ export function isTokenExpired(token) {
   if (!payload || !payload.exp) return true
   return payload.exp * 1000 < Date.now()
 }
+
+/**
+ * 奖品等级映射表
+ */
+const tierNameMap = {
+  // 数字映射
+  0: '特等奖',
+  1: '一等奖',
+  2: '二等奖',
+  3: '三等奖',
+  // 枚举名称映射
+  'TIER_SPECIAL': '特等奖',
+  'TIER_1': '一等奖',
+  'TIER_2': '二等奖',
+  'TIER_3': '三等奖',
+  // 字符串数字映射
+  '0': '特等奖',
+  '1': '一等奖',
+  '2': '二等奖',
+  '3': '三等奖'
+}
+
+/**
+ * 获取奖品等级的中文名称
+ * @param {string|number} tier - 奖品等级（可能是 TIER_1, 1, "1" 等）
+ * @returns {string}
+ */
+export function getTierName(tier) {
+  if (!tier && tier !== 0) return '-'
+  return tierNameMap[tier] || tierNameMap[String(tier)] || `${tier}等奖`
+}

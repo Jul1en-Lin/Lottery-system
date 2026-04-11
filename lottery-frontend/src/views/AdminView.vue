@@ -89,7 +89,7 @@
               </div>
               <div v-for="prize in prizes" :key="prize.prizeId || prize.id" class="table-row">
                 <span class="col-name">{{ prize.prizeName }}</span>
-                <span class="col-tier">{{ prize.prizeTier }}</span>
+                <span class="col-tier">{{ getTierName(prize.prizeTier) }}</span>
                 <span class="col-count">{{ prize.prizeCount }}</span>
                 <span class="col-prob">{{ (prize.probability * 100).toFixed(1) }}%</span>
               </div>
@@ -154,7 +154,7 @@
               <div v-for="record in records" :key="record.winnerId || record.id" class="table-row">
                 <span class="col-name">{{ record.winnerName }}</span>
                 <span class="col-prize">{{ record.prizeName }}</span>
-                <span class="col-tier">{{ record.prizeTier }}</span>
+                <span class="col-tier">{{ getTierName(record.prizeTier) }}</span>
                 <span class="col-time">{{ formatDate(record.winningTime) }}</span>
               </div>
             </div>
@@ -207,6 +207,7 @@ import { useActivityStore } from '@/stores/activity'
 import { userApi } from '@/api/modules/user'
 import { prizeApi } from '@/api/modules/prize'
 import { activityApi } from '@/api/modules/activity'
+import { getTierName } from '@/utils/index.js'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
 import InkButton from '@/components/common/InkButton.vue'
 import Divider from '@/components/common/Divider.vue'

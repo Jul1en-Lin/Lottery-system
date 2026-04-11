@@ -26,16 +26,17 @@
 
         <template v-else>
           <div class="records-container">
-            <div v-for="record in records" :key="record.winnerId || record.id" class="record-item">
+            <div v-for="record in paginatedRecords" :key="record.winnerId || record.id" class="record-item">
               <Stamp text="中奖" size="small" />
               <div class="record-info">
                 <div class="record-header">
                   <p class="winner-name">{{ record.winnerName || '匿名用户' }}</p>
-                  <span class="prize-tier">{{ record.prizeTier }}</span>
+                  <span class="prize-tier">{{ getTierName(record.prizeTier) }}</span>
                 </div>
                 <p class="prize-name">{{ record.prizeName }}</p>
-                <p class="activity-name" v-if="record.activityName">
-                  活动：{{ record.activityName }}
+                <p class="activity-name">
+                  <template v-if="record.activityName">活动：{{ record.activityName }}</template>
+                  <template v-else>&nbsp;</template>
                 </p>
                 <p class="win-time">{{ formatDate(record.winningTime) }}</p>
               </div>
@@ -71,6 +72,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { prizeApi } from '@/api/modules/prize'
+import { getTierName } from '@/utils/index.js'
 import NewspaperTitle from '@/components/common/NewspaperTitle.vue'
 import Stamp from '@/components/common/Stamp.vue'
 import InkButton from '@/components/common/InkButton.vue'
@@ -82,8 +84,15 @@ const userStore = useUserStore()
 const records = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(5)
 const total = ref(0)
+
+// 客户端分页：根据当前页码和每页数量计算显示的记录
+const paginatedRecords = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return records.value.slice(start, end)
+})
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -122,7 +131,7 @@ async function fetchRecords() {
 
 function changePage(page) {
   currentPage.value = page
-  fetchRecords()
+  // 客户端分页：切换页面时不重新请求数据，直接使用已加载的数据
 }
 
 function formatDate(dateStr) {
@@ -182,8 +191,9 @@ function goToLogin() {
 }
 
 .records-container {
-  max-height: 600px;
-  overflow-y: auto;
+  /* 固定最小高度，确保无论显示多少条记录，分页按钮位置保持不变
+     每条约80px高，5条约400px，加上padding预留空间 */
+  min-height: 450px;
 }
 
 .record-item {
