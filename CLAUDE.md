@@ -120,54 +120,6 @@ lottery-frontend/src/
 
 ## 进度记录 (Progress Records)
 
-### 2026-04-11
-- **类型**: Bugfix
-- **范围**: 后端活动列表、前端活动卡片 (`ActivityListResponse.java`, `ActivityServiceImpl.java`, `LotteryCard.vue`)
-- **变更摘要**:
-  - 修复活动列表页奖品数量始终显示为0的问题
-  - 后端 `ActivityListResponse.ActivityInfo` 新增 `prizeCount` 字段
-  - 新增 `getActivityPrizeCount()` 方法计算活动下所有奖品的 `prizeAmount` 总和
-  - 前端 `LotteryCard.vue` 改用后端返回的 `prizeCount` 字段
-- **里程碑**: 修复 issue #5，奖品数量现在正确显示为所有奖品数量的总和
-
-### 2026-04-11
-- **类型**: Bugfix
-- **范围**: 后端页面路由 (`AuthPageController.java`, `WebConfig.java`)
-- **变更摘要**:
-  - 修复活动详情页刷新后404的问题
-  - Vue 是单页应用(SPA)，所有路由都应该返回 index.html
-  - 在 AuthPageController 中修改所有路由映射:
-    - `/`, `/login`, `/signup`, `/activities`, `/activity/{id}`, `/user`, `/prizes` → index.html
-  - 在 WebConfig 中添加前端路由排除登录拦截
-- **里程碑**: Vue Router history 模式刷新正常工作
-
-### 2026-04-11
-- **类型**: Bugfix
-- **范围**: 前端奖品图片显示 (`PrizeList.vue`)
-- **变更摘要**:
-  - 修复活动详情页奖品图片无法显示的问题
-  - 后端返回的只有文件名，前端拼接为 `/picture/${filename}`
-  - 添加 `getFullImageUrl()` 方法处理图片URL
-- **里程碑**: 修复 issue #3，奖品图片现在正确显示
-
-### 2026-04-11
-- **类型**: Bugfix
-- **范围**: 前端活动状态显示 (`LotteryCard.vue`)
-- **变更摘要**:
-  - 修复活动列表页全部显示"已结束"的问题
-  - 原因：不同接口返回不同字段，列表接口返回 `valid`，详情接口返回 `status`
-  - `LotteryCard` 用于活动列表，应使用 `activity.valid`
-  - `ActivityDetailView` 用于活动详情，应使用 `activity.status`
-- **里程碑**: 修复活动列表页状态显示问题
-
-### 2026-04-11
-- **类型**: Bugfix
-- **范围**: 前端首页 (`lottery-frontend/src/views/HomeView.vue`)
-- **变更摘要**:
-  - 修复"查看全部活动"按钮点击无反应的问题
-  - 将按钮点击事件从 `scrollToActivities` 改为 `goToActivities`
-  - 删除不再使用的 `scrollToActivities` 函数
-- **里程碑**: 修复 issue #1，按钮现在正确跳转到活动列表页面
 
 ## 当前进度
 

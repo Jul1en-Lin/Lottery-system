@@ -194,7 +194,7 @@ public class UserServiceImpl implements UserService {
         consumeEmailCode(email, request.getCode());
         log.info("管理员邮箱验证码登录成功，userId：{}, email：{}", user.getId(), email);
         // 生成jwt-token
-        String token = generateJwtToken(user.getId(), user.getIdentity());
+        String token = generateJwtToken(user);
         return new UserLoginResponse(token,user.getId());
     }
 
@@ -213,18 +213,20 @@ public class UserServiceImpl implements UserService {
         }
         log.info("管理员密码登录成功，userId：{}, email：{}", user.getId(), email);
         // 生成jwt-token
-        String token = generateJwtToken(user.getId(), user.getIdentity());
+        String token = generateJwtToken(user);
         return new UserLoginResponse(token,user.getId());
     }
 
     /**
      * 生成并返回Jwt-token
-     * 负载claims：userId、identity，可扩展其他信息
+     * 负载claims：userId、identity、userName、email
      */
-    private String generateJwtToken(Long userId, String identity) {
+    private String generateJwtToken(User user) {
         HashMap<String,Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("identity", identity);
+        claims.put("userId", user.getId());
+        claims.put("identity", user.getIdentity());
+        claims.put("userName", user.getUserName());
+        claims.put("email", user.getEmail());
         return JwtUtil.genJwt(claims);
     }
 
