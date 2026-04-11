@@ -10,19 +10,7 @@
         :key="prize.prizeId"
         class="prize-item paper-card"
       >
-        <div class="prize-image-container">
-          <img
-            v-if="prize.imageUrl || prize.url"
-            :src="getFullImageUrl(prize.imageUrl || prize.url)"
-            :alt="prize.prizeName"
-            class="prize-image"
-          />
-          <div v-else class="prize-image-placeholder">
-            <span>暂无图片</span>
-          </div>
-          <div class="prize-tier-badge">{{ getTierName(prize.prizeTiers) }}</div>
-        </div>
-
+        <div class="prize-tier-badge">{{ getTierName(prize.prizeTiers) }}</div>
         <div class="prize-info">
           <h4 class="prize-name">{{ prize.prizeName }}</h4>
           <div class="prize-meta">
@@ -42,7 +30,6 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
 import Stamp from '@/components/common/Stamp.vue'
 import { getTierName } from '@/utils/index.js'
 
@@ -56,31 +43,6 @@ const props = defineProps({
     default: false
   }
 })
-
-// 调试：打印奖品数据
-watch(() => props.prizes, (newPrizes) => {
-  console.log('PrizeList received prizes:', newPrizes)
-  if (newPrizes?.length > 0) {
-    console.log('First prize:', newPrizes[0])
-    console.log('First prize keys:', Object.keys(newPrizes[0]))
-    console.log('First prize imageUrl:', newPrizes[0].imageUrl)
-    console.log('First prize image_url:', newPrizes[0].image_url)
-  }
-}, { immediate: true })
-
-/**
- * 获取完整的图片URL
- * 后端返回的文件名需要拼接为 /picture/ 路径
- */
-function getFullImageUrl(url) {
-  if (!url) return ''
-  // 如果已经是完整URL或以 / 开头，直接返回
-  if (url.startsWith('http') || url.startsWith('/')) {
-    return url
-  }
-  // 拼接 /picture/ 前缀
-  return `/picture/${url}`
-}
 
 /**
  * Format probability for display.
@@ -121,42 +83,19 @@ function formatProbability(prob) {
 
 .prize-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
 }
 
 .prize-item {
-  padding: 16px;
+  position: relative;
+  padding: 20px 16px;
   text-align: center;
   transition: transform 0.2s ease;
 }
 
 .prize-item:hover {
   transform: translateY(-4px);
-}
-
-.prize-image-container {
-  position: relative;
-  margin-bottom: 12px;
-}
-
-.prize-image {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border: 1px solid var(--border-color);
-}
-
-.prize-image-placeholder {
-  width: 100%;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--paper-bg-dark);
-  border: 1px dashed var(--border-color);
-  color: var(--ink-secondary);
-  font-size: 14px;
 }
 
 .prize-tier-badge {
@@ -172,19 +111,20 @@ function formatProbability(prob) {
 }
 
 .prize-info {
-  text-align: left;
+  text-align: center;
 }
 
 .prize-name {
-  font-size: 16px;
-  margin: 0 0 8px 0;
+  font-size: 18px;
+  margin: 0 0 12px 0;
   letter-spacing: 2px;
 }
 
 .prize-meta {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
   color: var(--ink-secondary);
 }
 
